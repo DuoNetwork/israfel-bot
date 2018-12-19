@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`getDates 1`] = `
+Array [
+  "1970-01-12",
+  "1970-01-13",
+  "1970-01-14",
+  "1970-01-15",
+]
+`;
+
+exports[`parseOptions 1`] = `
+Object {
+  "debug": true,
+  "token": "token",
+}
+`;
+
+exports[`round 1`] = `12345`;
+
+exports[`round 2`] = `12345`;
+
+exports[`round 3`] = `12345.1234567`;
+
+exports[`round 4`] = `12345.12345678`;
+
+exports[`round 5`] = `0.12345678`;
+
+exports[`round 6`] = `12345.12345678`;

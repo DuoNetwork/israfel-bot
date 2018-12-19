@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "..\\duo-admin"
+		},
+		{
+			"path": "..\\duo-contract-wrapper"
+		},
+		{
+			"path": "..\\israfel-relayer"
+		},
+		{
+			"path": "..\\israfel-app"
+		}
+	],
+	"settings": {
+		"vsicons.presets.angular": false,
+		"javascript.validate.enable": false
+	}
+}
