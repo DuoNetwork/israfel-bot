@@ -55,29 +55,11 @@ export class ContractUtil {
 			util.logDebug(`no dualClassWrapper initiated`);
 			return [];
 		}
-
 		const states: IDualClassStates = await this.dualClassCustodianWrapper.getStates();
-
 		const tokenValueB =
 			(((1 - states.createCommRate) * states.resetPrice) / (1 + states.alpha)) * ethAmount;
 		const tokenValueA = states.alpha * tokenValueB;
 		return [tokenValueA, tokenValueB];
-	}
-
-	public async createRaw(
-		address: string,
-		privateKey: string,
-		gasPrice: number,
-		gasLimit: number,
-		eth: number
-	) {
-		return this.dualClassCustodianWrapper.createRaw(
-			address,
-			privateKey,
-			gasPrice,
-			gasLimit,
-			eth
-		);
 	}
 
 	public async checkBalance(
@@ -123,6 +105,12 @@ export class ContractUtil {
 
 				// tokenBalance
 				const tokenBalance = await this.web3Util.getTokenBalance(code1, address);
+				const accountsBot: IAccounts[] = require('../keys/accountsBot.json');
+				const account = accountsBot.find(a => a.address === address);
+				const gasPrice = Math.max(
+					await this.web3Util.getGasPrice(),
+					CST.DEFAULT_GAS_PRICE * Math.pow(10, 9)
+				);
 				if (tokenBalance < CST.MIN_TOKEN_BALANCE) {
 					util.logDebug(
 						`the address ${address} current token balance of ${code1} is ${tokenBalance}, need create more tokens...`
@@ -136,23 +124,11 @@ export class ContractUtil {
 						tokenValues[tokenIndex] + tokenBalance > CST.MIN_TOKEN_BALANCE
 					) {
 						util.logDebug(`creating token ${code1}`);
-						const accountsBot: IAccounts[] = require('../keys/accountsBot.json');
-						const account = accountsBot.find(a => a.address === address);
-						console.log(
-							Number(
-								Number(
-									(ethBalance - CST.MIN_ETH_BALANCE - 0.1).toFixed(10)
-								).toPrecision(3)
-							)
-						);
 						if (account)
-							await this.createRaw(
+							await this.dualClassCustodianWrapper.createRaw(
 								address,
 								account.privateKey,
-								Math.max(
-									await this.web3Util.getGasPrice(),
-									CST.DEFAULT_GAS_PRICE * Math.pow(10, 9)
-								),
+								gasPrice,
 								CST.CREATE_GAS,
 								Number(
 									Number(
@@ -165,6 +141,21 @@ export class ContractUtil {
 							addresses = addresses.filter(addr => addr !== address);
 							continue;
 						}
+					}
+				} else if (tokenBalance >= CST.MAX_TOKEN_BALANCE) {
+					util.logDebug(
+						`the address ${address} current token balance of ${code1} is ${tokenBalance}, need redeem back...`
+					);
+					if (account) {
+						const states: IDualClassStates = await this.dualClassCustodianWrapper.getStates();
+						await this.dualClassCustodianWrapper.redeemRaw(
+							address,
+							account.privateKey,
+							tokenBalance - CST.MAX_TOKEN_BALANCE,
+							(tokenBalance - CST.MAX_TOKEN_BALANCE) / states.alpha,
+							gasPrice,
+							CST.REDEEM_GAS
+						);
 					}
 				}
 

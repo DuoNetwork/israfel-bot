@@ -1,26 +1,24 @@
 // fix for @ledgerhq/hw-transport-u2f 4.28.0
 import '@babel/polyfill';
-// import moment from 'moment';
 import WebSocket from 'ws';
-// import DualClassWrapper from '../../../duo-contract-wrapper/src/DualClassWrapper';
-// import Web3Wrapper from '../../../duo-contract-wrapper/src/Web3Wrapper';
-import israfelDynamoUtil from '../../../israfel-relayer/src/utils/dynamoUtil';
-import orderUtil from '../../../israfel-relayer/src/utils/orderUtil';
+import Web3Wrapper from '../../../duo-contract-wrapper/src/Web3Wrapper';
+import orderBookUtil from '../../../israfel-relayer/src/utils/orderBookUtil';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
 import * as CST from '../common/constants';
 import {
-	// IAccounts,
-	// IDualClassStates,
+	IAcceptedPrice,
 	IOption,
 	IOrderBookSnapshot,
 	IToken,
-	IWsAddOrderRequest,
-	// IWsInfoResponse,
+	IWsInfoResponse,
 	IWsOrderBookResponse,
+	IWsOrderBookUpdateResponse,
+	IWsOrderHistoryRequest,
 	IWsRequest,
 	IWsResponse
 } from '../common/types';
 import { ContractUtil } from './contractUtil';
+import { OrderMakerUtil } from './orderMakerUtil';
 import util from './util';
 
 class MakeDepthUtil {
@@ -29,18 +27,20 @@ class MakeDepthUtil {
 	public latestVersionNumber: number = 0;
 	public orderBookSnapshot: IOrderBookSnapshot | null = null;
 	public tokens: IToken[] = [];
-	public availableAddrs: string[] = [];
-	public currentAddrIdx: number = 0;
+
 	public pair: string = '';
 	public web3Util: Web3Util | null = null;
+	public web3Wrapper: Web3Wrapper | null = null;
 	public contractUtil: ContractUtil | null = null;
+	public orderMakerUtil: OrderMakerUtil | null = null;
+	public contractAddress: string = '';
+	public contractType: string = '';
+	public contractTenor: string = '';
 	public tokenIndex: number = 0;
-
-	public getCurrentAddress() {
-		const currentAddr = this.availableAddrs[this.currentAddrIdx];
-		this.currentAddrIdx = (this.currentAddrIdx + 1) % this.availableAddrs.length;
-		return currentAddr;
-	}
+	public lastAcceptedPrice: IAcceptedPrice | null = null;
+	private orderBookSubscribed: boolean = false;
+	public orderSubscribed: boolean = false;
+	public isMakingOrder: boolean = false;
 
 	public connectToRelayer(option: IOption) {
 		this.ws = new WebSocket(`wss://relayer.${option.live ? 'live' : 'dev'}.israfel.info:8080`);
@@ -51,6 +51,7 @@ class MakeDepthUtil {
 		this.ws.onmessage = (m: any) => this.handleMessage(m.data.toString());
 		this.ws.onerror = () => this.reconnect(option);
 		this.ws.onclose = () => this.reconnect(option);
+		if (this.orderMakerUtil) this.orderMakerUtil.ws = this.ws;
 	}
 
 	public subscribeOrderBook(pair: string) {
@@ -61,21 +62,23 @@ class MakeDepthUtil {
 			channel: CST.DB_ORDER_BOOKS,
 			pair: pair
 		};
+		console.log(msg);
 		this.ws.send(JSON.stringify(msg));
 	}
 
-	public subscribeOrders(pair: string) {
+	public subscribeOrders(pair: string, address: string) {
 		if (!this.ws) return;
 
-		const msg: IWsRequest = {
+		const msg: IWsOrderHistoryRequest = {
 			method: CST.WS_SUB,
 			channel: CST.DB_ORDERS,
-			pair: pair
+			pair: pair,
+			account: address
 		};
 		this.ws.send(JSON.stringify(msg));
 	}
 
-	public handleOrderBookResponse(orderBookResponse: IWsResponse) {
+	public async handleOrderBookResponse(orderBookResponse: IWsResponse) {
 		if (orderBookResponse.status !== CST.WS_OK) util.logDebug('orderBook error');
 		else if (orderBookResponse.method === CST.DB_SNAPSHOT)
 			if (
@@ -86,12 +89,206 @@ class MakeDepthUtil {
 					(orderBookResponse as IWsOrderBookResponse).orderBookSnapshot.pair
 				);
 				this.latestVersionNumber = (orderBookResponse as IWsOrderBookResponse).orderBookSnapshot.version;
-			} else
+			} else {
 				this.orderBookSnapshot = (orderBookResponse as IWsOrderBookResponse).orderBookSnapshot;
+				if (!this.isMakingOrder) {
+					this.isMakingOrder = true;
+					await this.handleOrderBookUpdate();
+				}
+			}
+		else {
+			this.latestVersionNumber = (orderBookResponse as IWsOrderBookUpdateResponse)
+				.orderBookUpdate
+				? (orderBookResponse as IWsOrderBookUpdateResponse).orderBookUpdate.version
+				: 0;
+
+			const obUpdate = (orderBookResponse as IWsOrderBookUpdateResponse).orderBookUpdate;
+
+			if (this.orderBookSnapshot) {
+				orderBookUtil.updateOrderBookSnapshot(this.orderBookSnapshot, obUpdate);
+				if (!this.isMakingOrder) {
+					this.isMakingOrder = true;
+					await this.handleOrderBookUpdate();
+				}
+			} else util.logDebug(`update comes before snapshot`);
+		}
 	}
 
 	public handleOrdesResponse(ordersResponse: any) {
-		console.log(ordersResponse);
+		console.log(ordersResponse.method);
+	}
+
+	private async handleOrderBookUpdate() {
+		console.log(this.orderBookSnapshot);
+		util.logInfo(`anlayzing new orderBookSnapshot`);
+		if (!this.orderBookSnapshot || !this.orderMakerUtil || !this.lastAcceptedPrice) {
+			util.logDebug(`no orderBookSnapshot`);
+			return;
+		}
+
+		const expectedMidPrice =
+			(this.tokenIndex === 0 ? this.lastAcceptedPrice.navA : this.lastAcceptedPrice.navB) /
+			this.lastAcceptedPrice.price;
+		util.logInfo(`expected midprice ${expectedMidPrice}`);
+
+		let createBidAmount = 0;
+		let createAskAmount = 0;
+		let numOfBidOrders = 0;
+		let numOfAskOrders = 0;
+
+		if (!this.orderBookSnapshot.bids.length && !this.orderBookSnapshot.asks.length) {
+			createAskAmount = 50;
+			createBidAmount = 50;
+			numOfBidOrders = 3;
+			numOfAskOrders = 3;
+		} else if (!this.orderBookSnapshot.bids.length && this.orderBookSnapshot.asks.length) {
+			const bestAskPrice = this.orderBookSnapshot.asks[0].price;
+			const totalLiquidity = this.orderBookSnapshot.asks
+				.map(ask => ask.balance)
+				.reduce((accumulator, currentValue) => accumulator + currentValue);
+			if (bestAskPrice > expectedMidPrice) {
+				createAskAmount = 50 - totalLiquidity;
+				createBidAmount = 50;
+				numOfBidOrders = 3;
+				numOfAskOrders = 1;
+			} else if (totalLiquidity <= 15 && bestAskPrice < expectedMidPrice) {
+				util.logDebug(`ask side liquidity not enough, take all and recreate orderBook`);
+				// take all
+				await this.orderMakerUtil.takeOneSideOrders(
+					this.pair,
+					false,
+					this.orderBookSnapshot.asks.filter(ask => ask.price <= expectedMidPrice)
+				);
+				createAskAmount = 50;
+				createBidAmount = 50;
+				numOfBidOrders = 3;
+				numOfAskOrders = 3;
+			}
+		} else if (!this.orderBookSnapshot.asks.length && this.orderBookSnapshot.bids.length) {
+			const bestBidPrice = this.orderBookSnapshot.bids[0].price;
+			const totalLiquidity = this.orderBookSnapshot.bids
+				.map(bid => bid.balance)
+				.reduce((accumulator, currentValue) => accumulator + currentValue);
+			if (bestBidPrice < expectedMidPrice) {
+				createBidAmount = 50 - totalLiquidity;
+				createAskAmount = 50;
+				numOfBidOrders = 1;
+				numOfAskOrders = 3;
+			} else if (totalLiquidity <= 15 && bestBidPrice > expectedMidPrice) {
+				util.logDebug(`bid side liquidity not enough, take all and recreate orderBook`);
+				// take all
+				await this.orderMakerUtil.takeOneSideOrders(
+					this.pair,
+					true,
+					this.orderBookSnapshot.bids.filter(bid => bid.price >= expectedMidPrice)
+				);
+				createAskAmount = 50;
+				createBidAmount = 50;
+				numOfBidOrders = 3;
+				numOfAskOrders = 3;
+			}
+		} else {
+			const bestBidPrice = this.orderBookSnapshot.bids[0].price;
+			const bestAskPrice = this.orderBookSnapshot.asks[0].price;
+
+			const totalBidLiquidity = this.orderBookSnapshot.bids
+				.map(bid => bid.balance)
+				.reduce((accumulator, currentValue) => accumulator + currentValue);
+
+			const totalAskLiquidity = this.orderBookSnapshot.asks
+				.map(ask => ask.balance)
+				.reduce((accumulator, currentValue) => accumulator + currentValue);
+
+			if (expectedMidPrice <= bestAskPrice && expectedMidPrice >= bestBidPrice) {
+				createAskAmount = 50 - totalAskLiquidity;
+				createBidAmount = 50 - totalBidLiquidity;
+				numOfBidOrders = 1;
+				numOfAskOrders = 1;
+			} else if (expectedMidPrice > bestAskPrice) {
+				createBidAmount = 50 - totalBidLiquidity;
+				// take ask
+				await this.orderMakerUtil.takeOneSideOrders(
+					this.pair,
+					false,
+					this.orderBookSnapshot.asks.filter(ask => ask.price <= expectedMidPrice)
+				);
+				const takedAskAmt = this.orderBookSnapshot.asks
+					.filter(ask => ask.price <= expectedMidPrice)
+					.map(ask => ask.balance)
+					.reduce((accumulator, currentValue) => accumulator + currentValue);
+				createAskAmount = 50 - takedAskAmt;
+				numOfBidOrders = 1;
+				numOfAskOrders = takedAskAmt < 50 ? 2 : 3;
+			} else if (expectedMidPrice < bestBidPrice) {
+				createAskAmount = 50 - totalAskLiquidity;
+				// take bid
+				await this.orderMakerUtil.takeOneSideOrders(
+					this.pair,
+					true,
+					this.orderBookSnapshot.bids.filter(bid => bid.price >= expectedMidPrice)
+				);
+				const takedBidAmt = this.orderBookSnapshot.bids
+					.filter(bid => bid.price <= expectedMidPrice)
+					.map(bid => bid.balance)
+					.reduce((accumulator, currentValue) => accumulator + currentValue);
+				createBidAmount = 50 - takedBidAmt;
+			}
+		}
+
+		util.logInfo(`createBidAmount: ${createBidAmount} createAskAmount: ${createAskAmount}
+		numOfBidOrders: ${numOfBidOrders} numOfAskOrders: ${numOfAskOrders}`);
+
+		if (createAskAmount > 0 && numOfAskOrders > 0)
+			await this.orderMakerUtil.createOrderBookSide(
+				this.pair,
+				true,
+				this.contractType,
+				this.contractTenor,
+				expectedMidPrice,
+				createBidAmount,
+				numOfAskOrders
+			);
+		if (createBidAmount > 0 && numOfBidOrders)
+			await this.orderMakerUtil.createOrderBookSide(
+				this.pair,
+				false,
+				this.contractType,
+				this.contractTenor,
+				expectedMidPrice,
+				createAskAmount,
+				numOfBidOrders
+			);
+		this.isMakingOrder = false;
+	}
+
+	public handleInfoResonsde(info: IWsInfoResponse) {
+		const { tokens, acceptedPrices } = info;
+		if (!this.web3Util || !this.orderMakerUtil) {
+			util.logDebug(`no web3Util initiated`);
+			return;
+		}
+		this.web3Util.setTokens(tokens);
+		const token = tokens.find(t => t.code === this.pair.split('|')[0]);
+		if (token) this.contractAddress = token.custodian;
+		const newAcceptedPrice =
+			acceptedPrices[this.contractAddress][acceptedPrices[this.contractAddress].length - 1];
+		if (!this.lastAcceptedPrice) this.lastAcceptedPrice = newAcceptedPrice;
+		else if (this.lastAcceptedPrice && newAcceptedPrice.price !== this.lastAcceptedPrice.price)
+			this.lastAcceptedPrice = acceptedPrices[this.contractAddress].length
+				? newAcceptedPrice
+				: null;
+		// TODO handle nav change
+
+		if (!this.orderBookSubscribed) {
+			this.subscribeOrderBook(this.pair);
+			this.orderBookSubscribed = true;
+		}
+		if (!this.orderSubscribed) {
+			for (const address of this.orderMakerUtil.availableAddrs)
+				this.subscribeOrders(this.pair, address);
+
+			this.orderSubscribed = true;
+		}
 	}
 
 	public handleMessage(message: string) {
@@ -105,16 +302,10 @@ class MakeDepthUtil {
 					this.handleOrdesResponse(res);
 					break;
 				case CST.WS_INFO:
-					console.log('received info');
-					// const {
-					// 	tokens,
-					// 	processStatus,
-					// 	acceptedPrices,
-					// 	exchangePrices
-					// } = res as IWsInfoResponse;
-					// console.log(tokens, processStatus, acceptedPrices, exchangePrices);
+					this.handleInfoResonsde(res as IWsInfoResponse);
 					break;
 				default:
+					util.logDebug(`received msg from non intended channel`);
 					break;
 			}
 	}
@@ -122,7 +313,6 @@ class MakeDepthUtil {
 	private reconnect(option: IOption) {
 		this.ws = null;
 		if (this.reconnectionNumber < 6)
-			// this.handleReconnect();
 			setTimeout(() => {
 				this.connectToRelayer(option);
 				this.reconnectionNumber++;
@@ -130,133 +320,52 @@ class MakeDepthUtil {
 		else util.logDebug('We have tried 6 times. Please try again later');
 	}
 
-	public async placeOrder(isBid: boolean, price: number, amount: number, pair: string) {
-		if (!this.web3Util) throw new Error('no web3Util initiated');
-		if (!this.web3Util.isValidPair(pair)) throw new Error('invalid pair');
-		const [code1, code2] = pair.split('|');
-		const token1 = this.web3Util.getTokenByCode(code1);
-		if (!token1) throw new Error('invalid pair');
-		const address1 = token1.address;
-		const address2 = this.web3Util.getTokenAddressFromCode(code2);
-
-		const amountAfterFee = orderUtil.getAmountAfterFee(
-			amount,
-			price,
-			token1.feeSchedules[code2],
-			isBid
-		);
-
-		const expiry = Math.floor(util.getExpiryTimestamp(false) / 1000);
-
-		if (!amountAfterFee.makerAssetAmount || !amountAfterFee.takerAssetAmount)
-			throw new Error('invalid amount');
-
-		const rawAskOrder = await this.web3Util.createRawOrder(
-			pair,
-			this.getCurrentAddress(),
-			isBid ? address2 : address1,
-			isBid ? address1 : address2,
-			amountAfterFee.makerAssetAmount,
-			amountAfterFee.takerAssetAmount,
-			expiry
-		);
-
-		const msgAsk: IWsAddOrderRequest = {
-			method: CST.DB_ADD,
-			channel: CST.DB_ORDERS,
-			pair: pair,
-			orderHash: rawAskOrder.orderHash,
-			order: rawAskOrder.signedOrder
-		};
-		if (!this.ws) {
-			console.log('no client initiated');
-			return;
-		}
-
-		util.logInfo('send add order request' + JSON.stringify({
-			price: price,
-			amount: amount,
-			isBid: isBid
-		}));
-		this.ws.send(JSON.stringify(msgAsk));
-	}
-
-	private async makeBeethoven(option: IOption) {
-		if (!this.contractUtil) {
-			util.logDebug(`no contractUtil initiated`);
-			return;
-		}
-		util.logInfo(`make depth for ${option.type} contract`);
-		if (![CST.TENOR_PPT, CST.TENOR_M19].includes(option.tenor)) {
-			util.logDebug('wrong contract tenor');
-			return;
-		}
-		util.logInfo(`make depth for ${option.tenor} contract`);
-		const prices: number[] = await this.contractUtil.estimateBeethovenPrice(option);
-		if (!prices.length) {
-			util.logDebug('no nav calculated');
-			return;
-		}
-
-		if (prices) {
-			const midPrice = prices[this.tokenIndex];
-
-			for (let i = 0; i < 10; i++) {
-				const bidPrice = util.round(midPrice - (i + 1) * 0.0005, '3');
-				const askPrice = util.round(midPrice + (i + 1) * 0.0005, '3');
-				const bidAmt = util.round(Math.random() * 10, '1');
-				const askAmt = util.round(Math.random() * 10, '1');
-				await this.placeOrder(true, bidPrice, bidAmt, this.pair);
-				util.sleep(1000);
-				await this.placeOrder(false, askPrice, askAmt, this.pair);
-				util.sleep(1000);
-				break;
-			}
-		}
-	}
-
-	public async batchRenderingOB(option: IOption) {
-		if (!this.contractUtil) {
-			util.logDebug(`no contractUtil initiated`);
-			return;
-		}
-		util.logInfo(`start checking bot addrs balancing`);
-		this.availableAddrs = await this.contractUtil.checkBalance(
-			this.pair,
-			this.tokenIndex,
-			this.availableAddrs
-		);
-
-		switch (option.type) {
-			case CST.BEETHOVEN:
-				this.makeBeethoven(option);
-				break;
-			default:
-				util.logDebug(`incorrect contract type specified`);
-				return;
-		}
-	}
-
 	public getTokenIndex(option: IOption) {
 		if (option.token.toLowerCase().includes('b') || option.token.toLowerCase().includes('l'))
 			this.tokenIndex = 1;
 	}
 
-	public async startMake(contractUtil: ContractUtil, web3Util: Web3Util, option: IOption) {
+	public async startMake(
+		contractUtil: ContractUtil,
+		web3Wrapper: Web3Wrapper,
+		web3Util: Web3Util,
+		option: IOption
+	) {
 		util.logInfo(`makeDepth for ${option.token}`);
-		this.availableAddrs = await web3Util.getAvailableAddresses();
-		util.logInfo(`avaialbel address are ${JSON.stringify(this.availableAddrs)}`);
+
 		this.web3Util = web3Util;
+		this.web3Wrapper = web3Wrapper;
 		this.contractUtil = contractUtil;
+		const orderMakerUtil: OrderMakerUtil = new OrderMakerUtil(
+			web3Util,
+			this.ws as WebSocket,
+			contractUtil
+		);
+		this.orderMakerUtil = orderMakerUtil;
+		this.orderMakerUtil.availableAddrs = await web3Util.getAvailableAddresses();
+		util.logInfo(`avaialbel address are ${JSON.stringify(this.orderMakerUtil.availableAddrs)}`);
+
 		this.getTokenIndex(option);
 
-		await this.connectToRelayer(option);
-		this.tokens = JSON.parse(JSON.stringify(await israfelDynamoUtil.scanTokens()));
-		web3Util.setTokens(this.tokens);
-
 		this.pair = option.token + '|' + CST.TOKEN_WETH;
-		await this.batchRenderingOB(option);
-		setInterval(() => this.batchRenderingOB(option), CST.ONE_MINUTE_MS * 15);
+		this.contractType = option.type;
+		this.contractTenor = option.tenor;
+
+		// this.orderMakerUtil.availableAddrs = await contractUtil.checkBalance(
+		// 	this.pair,
+		// 	this.tokenIndex,
+		// 	this.orderMakerUtil.availableAddrs
+		// );
+		await this.connectToRelayer(option);
+		setInterval(
+			() =>
+				contractUtil.checkBalance(
+					this.pair,
+					this.tokenIndex,
+					orderMakerUtil.availableAddrs
+				),
+			CST.ONE_MINUTE_MS * 30
+		);
 	}
 }
 

@@ -8,7 +8,11 @@ export {
 	IWsInfoResponse,
 	IOrderBookSnapshot,
 	IToken,
-	IWsAddOrderRequest
+	IWsAddOrderRequest,
+	IOrderBookSnapshotUpdate,
+	IWsOrderBookUpdateResponse,
+	IOrderBookSnapshotLevel,
+	IWsOrderHistoryRequest
 } from '../../../israfel-relayer/src/common/types';
 
 export interface IOption {
