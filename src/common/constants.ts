@@ -40,12 +40,12 @@ export const SRC = [
 	API_GDAX
 ];
 
-export const MIN_ETH_BALANCE = 0.2;
-export const MIN_WETH_BALANCE = 0.5;
+export const MIN_ETH_BALANCE = 0.5;
+export const MIN_WETH_BALANCE = 0.4;
 export const MIN_TOKEN_BALANCE = 20;
 export const MAX_TOKEN_BALANCE = 100;
 
-export const PRICE_STEP = 0.0005;
+export const PRICE_STEP = 0.001;
 export const PRICE_LEVEL = 5;
 
 export const DB_PRICES_PRIMARY_KEY_RESOLUTION: {

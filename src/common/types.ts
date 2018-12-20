@@ -12,7 +12,8 @@ export {
 	IOrderBookSnapshotUpdate,
 	IWsOrderBookUpdateResponse,
 	IOrderBookSnapshotLevel,
-	IWsOrderHistoryRequest
+	IWsOrderHistoryRequest,
+	IStringSignedOrder
 } from '../../../israfel-relayer/src/common/types';
 
 export interface IOption {

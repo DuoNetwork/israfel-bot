@@ -1,4 +1,5 @@
 import moment from 'moment';
+import Web3 from 'web3';
 import DualClassWrapper from '../../../duo-contract-wrapper/src/DualClassWrapper';
 import Web3Wrapper from '../../../duo-contract-wrapper/src/Web3Wrapper';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
@@ -7,10 +8,13 @@ import { IAccounts, IDualClassStates, IOption } from '../common/types';
 import priceUtil from './priceUtil';
 import util from './util';
 
+const Tx = require('ethereumjs-tx');
+
 export class ContractUtil {
 	public dualClassCustodianWrapper: DualClassWrapper;
 	public web3Wrapper: Web3Wrapper | null = null;
 	public web3Util: Web3Util;
+	public web3: Web3;
 
 	constructor(web3Util: Web3Util, web3Wrapper: Web3Wrapper, option: IOption) {
 		this.web3Wrapper = web3Wrapper;
@@ -18,6 +22,11 @@ export class ContractUtil {
 		this.dualClassCustodianWrapper = new DualClassWrapper(
 			web3Wrapper,
 			web3Wrapper.contractAddresses.Custodians.Beethoven[option.tenor].custodian.address
+		);
+		this.web3 = new Web3(
+			option.source
+				? new Web3.providers.HttpProvider(option.provider)
+				: new Web3.providers.WebsocketProvider(option.provider)
 		);
 	}
 
@@ -62,6 +71,47 @@ export class ContractUtil {
 		return [tokenValueA, tokenValueB];
 	}
 
+	private getMainAccount(): IAccounts {
+		const faucetAccount = require('../keys/faucetAccount.json');
+
+		return {
+			address: faucetAccount.publicKey,
+			privateKey: faucetAccount.privateKey
+		};
+	}
+
+	private async ethTransferRaw(
+		web3: Web3,
+		from: string,
+		privatekey: string,
+		to: string,
+		amt: number,
+		nonce: number
+	) {
+		const rawTx = {
+			nonce: nonce,
+			gasPrice: web3.utils.toHex((await web3.eth.getGasPrice()) || CST.DEFAULT_GAS_PRICE),
+			gasLimit: web3.utils.toHex(23000),
+			from: from,
+			to: to,
+			value: web3.utils.toHex(web3.utils.toWei(amt.toPrecision(3) + '', 'ether'))
+		};
+		return web3.eth
+			.sendSignedTransaction('0x' + this.signTx(rawTx, privatekey))
+			.then(receipt => util.logInfo(JSON.stringify(receipt, null, 4)));
+	}
+
+	public signTx(rawTx: object, privateKey: string): string {
+		try {
+			const tx = new Tx(rawTx);
+			tx.sign(new Buffer(privateKey, 'hex'));
+			return tx.serialize().toString('hex');
+		} catch (err) {
+			util.logError(err);
+			return '';
+		}
+	}
+
 	public async checkBalance(
 		pair: string,
 		tokenIndex: number,
@@ -76,35 +126,44 @@ export class ContractUtil {
 				util.logInfo(`the ethBalance of ${address} is ${ethBalance}`);
 				if (ethBalance < CST.MIN_ETH_BALANCE) {
 					util.logDebug(
-						`the address ${address} current eth balance is ${ethBalance}, skip...`
+						`the address ${address} current eth balance is ${ethBalance}, make transfer...`
 					);
 					addresses = addresses.filter(addr => addr !== address);
+					const faucetAccount: IAccounts = this.getMainAccount();
+
+					await this.ethTransferRaw(
+						this.web3,
+						faucetAccount.address,
+						faucetAccount.privateKey,
+						address,
+						CST.MIN_ETH_BALANCE,
+						await this.web3Util.getTransactionCount(faucetAccount.address)
+					);
 					continue;
 				}
 
 				// wEthBalance
 				const wEthBalance = await this.web3Util.getTokenBalance(code2, address);
-				if (
-					wEthBalance < CST.MIN_WETH_BALANCE &&
-					ethBalance + wEthBalance > CST.MIN_ETH_BALANCE + CST.MIN_WETH_BALANCE + 0.1
-				) {
-					util.logDebug(
+				if (wEthBalance < CST.MIN_WETH_BALANCE) {
+					util.logInfo(
 						`the address ${address} current weth balance is ${wEthBalance}, wrapping...`
 					);
-					await this.web3Util.wrapEther(
-						CST.MIN_WETH_BALANCE + 0.1 - wEthBalance,
-						address
-					);
-				} else {
-					util.logDebug(
-						`the address ${address} current weth balance is ${wEthBalance}, not enought eth to wrapping, skip...`
-					);
-					addresses = addresses.filter(addr => addr !== address);
-					continue;
+					const amtToWrap = CST.MIN_WETH_BALANCE + 0.1 - wEthBalance;
+					if (ethBalance > amtToWrap) {
+						util.logInfo(`start wrapping for ${address} with amt ${amtToWrap}`);
+						await this.web3Util.wrapEther(amtToWrap, address);
+					} else {
+						util.logInfo(
+							`the address ${address} current weth balance is ${wEthBalance}, not enought eth to wrapping, skip...`
+						);
+						addresses = addresses.filter(addr => addr !== address);
+						continue;
+					}
 				}
 
 				// tokenBalance
 				const tokenBalance = await this.web3Util.getTokenBalance(code1, address);
+				util.logInfo(`the ${code1} tokenBalance of ${address} is ${tokenBalance}`);
 				const accountsBot: IAccounts[] = require('../keys/accountsBot.json');
 				const account = accountsBot.find(a => a.address === address);
 				const gasPrice = Math.max(
@@ -112,7 +171,7 @@ export class ContractUtil {
 					CST.DEFAULT_GAS_PRICE * Math.pow(10, 9)
 				);
 				if (tokenBalance < CST.MIN_TOKEN_BALANCE) {
-					util.logDebug(
+					util.logInfo(
 						`the address ${address} current token balance of ${code1} is ${tokenBalance}, need create more tokens...`
 					);
 

@@ -50,11 +50,6 @@ dynamoUtil.init(
 	}
 );
 
-// const israfelConfig = require('./keys/aws/' +
-// 	(option.live ? 'live' : 'dev') +
-// 	'/israfel.admin.json');
-// israfelDynamoUtil.init(israfelConfig, option.live, tool, osUtil.getHostName());
-
 const mnemonic = require('./keys/mnemomic.json');
 const web3Util = new Web3Util(null, option.live, mnemonic.mnemomic, false);
 

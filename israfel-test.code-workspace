@@ -4,9 +4,6 @@
 			"path": "."
 		},
 		{
-			"path": "..\\duo-admin"
-		},
-		{
 			"path": "..\\duo-contract-wrapper"
 		},
 		{
