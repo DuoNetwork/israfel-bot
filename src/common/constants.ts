@@ -1,4 +1,7 @@
+import {  BEETHOVEN, MOZART, TENOR_M19, TENOR_PPT } from '../../../duo-admin/src/common/constants';
+
 export * from '../../../duo-admin/src/common/constants';
+
 export {
 	WS_UNSUB,
 	DB_ORDERS,
@@ -13,6 +16,13 @@ export {
 	TOKEN_WETH,
 	ONE_MINUTE_MS
 } from '../../../israfel-relayer/src/common/constants';
+
+export {
+	BEETHOVEN,
+	MOZART,
+	TENOR_PPT,
+	TENOR_M19
+} from '../../../duo-contract-wrapper/src/constants';
 
 export const LOG_INFO = 'INFO';
 export const LOG_DEBUG = 'DEBUG';
@@ -40,12 +50,13 @@ export const SRC = [
 	API_GDAX
 ];
 
-export const MIN_ETH_BALANCE = 0.5;
-export const MIN_WETH_BALANCE = 0.4;
-export const MIN_TOKEN_BALANCE = 20;
-export const MAX_TOKEN_BALANCE = 100;
+export const MIN_ETH_BALANCE = 3;
+export const MIN_WETH_BALANCE = 3;
+export const MIN_TOKEN_BALANCE = 150;
+export const MAX_TOKEN_BALANCE = 400;
 
-export const PRICE_STEP = 0.001;
+export const PRICE_STEP = 0.0005;
+export const PRICE_ROUND = 4;
 export const PRICE_LEVEL = 5;
 
 export const DB_PRICES_PRIMARY_KEY_RESOLUTION: {
@@ -57,4 +68,11 @@ export const DB_PRICES_PRIMARY_KEY_RESOLUTION: {
 	60: 'day',
 	360: 'month',
 	1440: 'month'
+};
+
+export const AVAILABLE_ADDR_IDX: { [key: string]: number[] } = {
+	[BEETHOVEN + '|' + TENOR_PPT]: [0, 1],
+	[BEETHOVEN + '|' + TENOR_M19]: [2, 3],
+	[MOZART + '|' + TENOR_PPT]: [4, 5],
+	[MOZART + '|' + TENOR_M19]: [6, 7]
 };

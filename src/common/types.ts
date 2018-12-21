@@ -25,6 +25,7 @@ export interface IOption {
 	source: string;
 	provider: string;
 	debug: boolean;
+	env: string;
 }
 
 export interface IBaseMarketData {

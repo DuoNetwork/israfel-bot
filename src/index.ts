@@ -2,13 +2,13 @@
 import '@babel/polyfill';
 import dynamoUtil from '../../duo-admin/src/utils/dynamoUtil';
 import Web3Wrapper from '../../duo-contract-wrapper/src/Web3Wrapper';
-// import israfelDynamoUtil from '../../israfel-relayer/src/utils/dynamoUtil';
+import israfelDynamoUtil from '../../israfel-relayer/src/utils/dynamoUtil';
 import Web3Util from '../../israfel-relayer/src/utils/Web3Util';
 import * as CST from './common/constants';
 import { IOption } from './common/types';
 import { ContractUtil } from './utils/contractUtil';
 import makeDepthUtil from './utils/makeDepthUtil';
-// import osUtil from './utils/osUtil';
+import osUtil from './utils/osUtil';
 import util from './utils/util';
 
 const tool = process.argv[2];
@@ -50,6 +50,11 @@ dynamoUtil.init(
 	}
 );
 
+const isRafelConfig = require('./keys/aws/' +
+	(option.live ? 'live' : 'dev') +
+	'/israfel.admin.json');
+israfelDynamoUtil.init(isRafelConfig, option.env, tool, osUtil.getHostName());
+
 const mnemonic = require('./keys/mnemomic.json');
 const web3Util = new Web3Util(null, option.live, mnemonic.mnemomic, false);
 
@@ -57,7 +62,13 @@ const contractUtil = new ContractUtil(web3Util, web3Wrapper, option);
 
 switch (tool) {
 	case CST.MAKE_DEPTH:
-		makeDepthUtil.startMake(contractUtil, web3Wrapper, web3Util, option);
+		try {
+			makeDepthUtil.startMake(contractUtil, web3Wrapper, web3Util, option);
+		} catch (error) {
+			console.log(error);
+			makeDepthUtil.startMake(contractUtil, web3Wrapper, web3Util, option);
+		}
+
 		break;
 	default:
 		util.logInfo('no such tool ' + tool);

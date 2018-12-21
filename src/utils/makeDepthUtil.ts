@@ -2,6 +2,7 @@
 import '@babel/polyfill';
 import WebSocket from 'ws';
 import Web3Wrapper from '../../../duo-contract-wrapper/src/Web3Wrapper';
+import israfelDynamoUtil from '../../../israfel-relayer/src/utils/dynamoUtil';
 import orderBookUtil from '../../../israfel-relayer/src/utils/orderBookUtil';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
 import * as CST from '../common/constants';
@@ -62,7 +63,6 @@ class MakeDepthUtil {
 			channel: CST.DB_ORDER_BOOKS,
 			pair: pair
 		};
-		console.log(msg);
 		this.ws.send(JSON.stringify(msg));
 	}
 
@@ -108,8 +108,8 @@ class MakeDepthUtil {
 				orderBookUtil.updateOrderBookSnapshot(this.orderBookSnapshot, obUpdate);
 				if (
 					!this.isMakingOrder &&
-					(!this.orderBookSnapshot.bids.length ||
-						!this.orderBookSnapshot.asks.length ||
+					(this.orderBookSnapshot.bids.length < 3 ||
+						this.orderBookSnapshot.asks.length < 3 ||
 						this.orderBookSnapshot.asks
 							.map(ask => ask.balance)
 							.reduce((accumulator, currentValue) => accumulator + currentValue) <
@@ -126,11 +126,10 @@ class MakeDepthUtil {
 	}
 
 	public handleOrdesResponse(ordersResponse: any) {
-		console.log(ordersResponse.method);
+		util.logDebug(`new order, method:  ${ordersResponse.method}, orderHash: ${ordersResponse.orderHas}`);
 	}
 
 	private async handleOrderBookUpdate() {
-		console.log(this.orderBookSnapshot);
 		util.logInfo(`anlayzing new orderBookSnapshot`);
 		if (!this.orderBookSnapshot || !this.orderMakerUtil || !this.lastAcceptedPrice) {
 			util.logDebug(`no orderBookSnapshot or orderMakerUtil or lastAcceptedPrice, pls check`);
@@ -140,7 +139,7 @@ class MakeDepthUtil {
 		const expectedMidPrice = util.round(
 			(this.tokenIndex === 0 ? this.lastAcceptedPrice.navA : this.lastAcceptedPrice.navB) /
 				this.lastAcceptedPrice.price,
-			'3'
+			CST.PRICE_ROUND - 1 + ''
 		);
 
 		util.logInfo(`expected midprice of pair ${this.pair} is ${expectedMidPrice}`);
@@ -151,14 +150,16 @@ class MakeDepthUtil {
 		let numOfAskOrders = 0;
 		const existingBidPriceLevel = this.orderBookSnapshot.bids.map(bid => bid.price);
 		const existingAskPriceLevel = this.orderBookSnapshot.asks.map(ask => ask.price);
+		let currentAskLevels = this.orderBookSnapshot.asks.length;
+		let currentBidLevels = this.orderBookSnapshot.bids.length;
 
-		if (!this.orderBookSnapshot.bids.length && !this.orderBookSnapshot.asks.length) {
+		if (!currentBidLevels && !currentAskLevels) {
 			util.logInfo(`no bids and asks, need to create brand new orderBook`);
 			createAskAmount = 50;
 			createBidAmount = 50;
 			numOfBidOrders = 3;
 			numOfAskOrders = 3;
-		} else if (!this.orderBookSnapshot.bids.length && this.orderBookSnapshot.asks.length) {
+		} else if (!currentBidLevels && currentAskLevels) {
 			util.logInfo(`no bids ,have asks`);
 			const bestAskPrice = this.orderBookSnapshot.asks[0].price;
 			const totalLiquidity = this.orderBookSnapshot.asks
@@ -171,7 +172,7 @@ class MakeDepthUtil {
 				createAskAmount = 50 - totalLiquidity;
 				createBidAmount = 50;
 				numOfBidOrders = 3;
-				numOfAskOrders = 3 - this.orderBookSnapshot.asks.length;
+				numOfAskOrders = 3 - currentAskLevels;
 			} else if (totalLiquidity <= 15 && bestAskPrice < expectedMidPrice) {
 				util.logDebug(`ask side liquidity not enough, take all and recreate orderBook`);
 				// take all
@@ -185,7 +186,7 @@ class MakeDepthUtil {
 				numOfBidOrders = 3;
 				numOfAskOrders = 3;
 			}
-		} else if (!this.orderBookSnapshot.asks.length && this.orderBookSnapshot.bids.length) {
+		} else if (!currentAskLevels && currentBidLevels) {
 			util.logInfo(`no asks, have bids`);
 			const bestBidPrice = this.orderBookSnapshot.bids[0].price;
 			const totalLiquidity = this.orderBookSnapshot.bids
@@ -198,7 +199,6 @@ class MakeDepthUtil {
 				createBidAmount = 50 - totalLiquidity;
 				createAskAmount = 50;
 				numOfBidOrders = 1;
-				// numOfBidOrders = 3 - this.orderBookSnapshot.bids.length;
 				numOfAskOrders = 3;
 			} else if (totalLiquidity <= 15 && bestBidPrice > expectedMidPrice) {
 				util.logDebug(`bid side liquidity not enough, take all and recreate orderBook`);
@@ -217,48 +217,63 @@ class MakeDepthUtil {
 			const bestBidPrice = this.orderBookSnapshot.bids[0].price;
 			const bestAskPrice = this.orderBookSnapshot.asks[0].price;
 
-			const totalBidLiquidity = this.orderBookSnapshot.bids
+			let totalBidLiquidity = this.orderBookSnapshot.bids
 				.map(bid => bid.balance)
 				.reduce((accumulator, currentValue) => accumulator + currentValue);
 
-			const totalAskLiquidity = this.orderBookSnapshot.asks
+			let totalAskLiquidity = this.orderBookSnapshot.asks
 				.map(ask => ask.balance)
 				.reduce((accumulator, currentValue) => accumulator + currentValue);
 
-			if (expectedMidPrice <= bestAskPrice && expectedMidPrice >= bestBidPrice) {
-				createAskAmount = 50 - totalAskLiquidity;
-				createBidAmount = 50 - totalBidLiquidity;
-				numOfBidOrders = 1;
-				numOfAskOrders = 1;
-			} else if (expectedMidPrice > bestAskPrice) {
-				createBidAmount = 50 - totalBidLiquidity;
-				// take ask
+			if (expectedMidPrice > bestAskPrice) {
 				await this.orderMakerUtil.takeOneSideOrders(
 					this.pair,
 					false,
 					this.orderBookSnapshot.asks.filter(ask => ask.price <= expectedMidPrice)
 				);
-				const takedAskAmt = this.orderBookSnapshot.asks
-					.filter(ask => ask.price <= expectedMidPrice)
+
+				currentAskLevels = this.orderBookSnapshot.asks.filter(
+					ask => ask.price > expectedMidPrice
+				).length;
+				totalAskLiquidity = this.orderBookSnapshot.asks
+					.filter(ask => ask.price > expectedMidPrice)
 					.map(ask => ask.balance)
 					.reduce((accumulator, currentValue) => accumulator + currentValue);
-				createAskAmount = 50 - takedAskAmt;
-				numOfBidOrders = 1;
-				numOfAskOrders = takedAskAmt < 50 ? 2 : 3;
 			} else if (expectedMidPrice < bestBidPrice) {
-				createAskAmount = 50 - totalAskLiquidity;
-				// take bid
 				await this.orderMakerUtil.takeOneSideOrders(
 					this.pair,
 					true,
 					this.orderBookSnapshot.bids.filter(bid => bid.price >= expectedMidPrice)
 				);
-				const takedBidAmt = this.orderBookSnapshot.bids
-					.filter(bid => bid.price <= expectedMidPrice)
+
+				currentBidLevels = this.orderBookSnapshot.bids.filter(
+					bid => bid.price < expectedMidPrice
+				).length;
+				totalBidLiquidity = this.orderBookSnapshot.bids
+					.filter(bid => bid.price < expectedMidPrice)
 					.map(bid => bid.balance)
 					.reduce((accumulator, currentValue) => accumulator + currentValue);
-				createBidAmount = 50 - takedBidAmt;
 			}
+
+			createAskAmount =
+				currentAskLevels >= 3
+					? 50 - totalAskLiquidity
+					: currentAskLevels === 2
+					? Math.max(50 - totalAskLiquidity, 20)
+					: currentAskLevels === 1
+					? Math.max(50 - totalAskLiquidity, 40)
+					: 50;
+			createBidAmount =
+				currentBidLevels >= 3
+					? 50 - totalBidLiquidity
+					: currentBidLevels === 2
+					? Math.max(50 - totalBidLiquidity, 20)
+					: currentBidLevels === 1
+					? Math.max(50 - totalBidLiquidity, 40)
+					: 50;
+
+			numOfBidOrders = Math.max(3 - currentBidLevels, 1);
+			numOfAskOrders = Math.max(3 - currentAskLevels, 1);
 		}
 
 		util.logInfo(`createBidAmount: ${createBidAmount} numOfBidOrders: ${numOfBidOrders}
@@ -370,7 +385,7 @@ class MakeDepthUtil {
 			contractUtil
 		);
 		this.orderMakerUtil = orderMakerUtil;
-		this.orderMakerUtil.availableAddrs = await web3Util.getAvailableAddresses();
+		await this.orderMakerUtil.setAvailableAddrs(option);
 		util.logInfo(`avaialbel address are ${JSON.stringify(this.orderMakerUtil.availableAddrs)}`);
 
 		this.getTokenIndex(option);
@@ -378,12 +393,17 @@ class MakeDepthUtil {
 		this.pair = option.token + '|' + CST.TOKEN_WETH;
 		this.contractType = option.type;
 		this.contractTenor = option.tenor;
+		const tokens = await israfelDynamoUtil.scanTokens();
+		await web3Util.setTokens(tokens);
 
 		this.orderMakerUtil.availableAddrs = await contractUtil.checkBalance(
 			this.pair,
 			this.tokenIndex,
 			this.orderMakerUtil.availableAddrs
 		);
+
+		if (!this.orderMakerUtil.availableAddrs.length) throw new Error('no available accounts');
+
 		await this.connectToRelayer(option);
 		setInterval(
 			() =>

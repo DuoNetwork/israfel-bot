@@ -4,7 +4,12 @@ import WebSocket from 'ws';
 import orderUtil from '../../../israfel-relayer/src/utils/orderUtil';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
 import * as CST from '../common/constants';
-import { IOrderBookSnapshotLevel, IStringSignedOrder, IWsAddOrderRequest } from '../common/types';
+import {
+	IOption,
+	IOrderBookSnapshotLevel,
+	IStringSignedOrder,
+	IWsAddOrderRequest
+} from '../common/types';
 import { ContractUtil } from './contractUtil';
 import util from './util';
 // import {  } from '../../../israfel-relayer/src/common/types';
@@ -25,6 +30,16 @@ export class OrderMakerUtil {
 		const currentAddr = this.availableAddrs[this.currentAddrIdx];
 		this.currentAddrIdx = (this.currentAddrIdx + 1) % this.availableAddrs.length;
 		return currentAddr;
+	}
+
+	public async setAvailableAddrs(option: IOption) {
+		if (!this.web3Util) {
+			util.logDebug(`no web3Util initiated`);
+			return;
+		}
+		const allAddrs = await this.web3Util.getAvailableAddresses();
+		const idxs = CST.AVAILABLE_ADDR_IDX[option.type + '|' + option.tenor];
+		this.availableAddrs = allAddrs.slice(idxs[0], idxs[1] + 1);
 	}
 
 	public async placeOrder(
@@ -52,8 +67,6 @@ export class OrderMakerUtil {
 
 		if (!amountAfterFee.makerAssetAmount || !amountAfterFee.takerAssetAmount)
 			throw new Error('invalid amount');
-
-		console.log('start creating rawOrder ############');
 
 		const rawOrder = await this.web3Util.createRawOrder(
 			pair,
@@ -126,8 +139,8 @@ export class OrderMakerUtil {
 		let i = 0;
 		let createdOrder = 0;
 		while (createdOrder < numOfOrders) {
-			const bidPrice = util.round(midPrice - (i + 1) * CST.PRICE_STEP, '3');
-			const askPrice = util.round(midPrice + (i + 1) * CST.PRICE_STEP, '3');
+			const bidPrice = util.round(midPrice - (i + 1) * CST.PRICE_STEP, CST.PRICE_ROUND + '');
+			const askPrice = util.round(midPrice + (i + 1) * CST.PRICE_STEP, CST.PRICE_ROUND + '');
 			const bidAmt = util.round(amountPerLevel + Math.random() * 10, '1');
 			const askAmt = util.round(amountPerLevel + Math.random() * 10, '1');
 
@@ -157,6 +170,7 @@ export class OrderMakerUtil {
 		isBid: boolean,
 		orderBookSide: IOrderBookSnapshotLevel[]
 	) {
+		console.log('take one side');
 		for (const orderLevel of orderBookSide) {
 			util.logDebug(
 				`taking an  ${isBid ? 'bid' : 'ask'} order with price ${orderLevel.price} amount ${
@@ -217,6 +231,8 @@ export class OrderMakerUtil {
 		}
 
 		try {
+			console.log('validate order #####################');
+			console.log(stringSignedOrder);
 			const orderHash = await orderUtil.validateOrder(
 				this.web3Util,
 				pair,

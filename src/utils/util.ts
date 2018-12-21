@@ -44,7 +44,8 @@ class Util {
 		source: '',
 		type: 'Beethoven',
 		tenor: 'Perpetual',
-		baseToken: 'ETH'
+		baseToken: 'ETH',
+		env: 'dev'
 	};
 
 	public getUTCNowTimestamp() {
@@ -75,6 +76,9 @@ class Util {
 					break;
 				case 'tenor':
 					option.tenor = args[1] || option.tenor;
+					break;
+				case 'env':
+					option.env = args[1] || option.env;
 					break;
 				default:
 					break;
