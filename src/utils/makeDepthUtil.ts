@@ -1,8 +1,6 @@
 // fix for @ledgerhq/hw-transport-u2f 4.28.0
 import '@babel/polyfill';
 import WebSocket from 'ws';
-import Web3Wrapper from '../../../duo-contract-wrapper/src/Web3Wrapper';
-import israfelDynamoUtil from '../../../israfel-relayer/src/utils/dynamoUtil';
 import orderBookUtil from '../../../israfel-relayer/src/utils/orderBookUtil';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
 import * as CST from '../common/constants';
@@ -22,7 +20,7 @@ import { ContractUtil } from './contractUtil';
 import { OrderMakerUtil } from './orderMakerUtil';
 import util from './util';
 
-class MakeDepthUtil {
+export class MakeDepthUtil {
 	public ws: WebSocket | null = null;
 	public reconnectionNumber: number = 0;
 	public latestVersionNumber: number = 0;
@@ -30,10 +28,8 @@ class MakeDepthUtil {
 	public tokens: IToken[] = [];
 
 	public pair: string = '';
-	public web3Util: Web3Util | null = null;
-	public web3Wrapper: Web3Wrapper | null = null;
-	public contractUtil: ContractUtil | null = null;
-	public orderMakerUtil: OrderMakerUtil | null = null;
+	public web3Util: Web3Util;
+	public orderMakerUtil: OrderMakerUtil;
 	public contractAddress: string = '';
 	public contractType: string = '';
 	public contractTenor: string = '';
@@ -42,9 +38,19 @@ class MakeDepthUtil {
 	private orderBookSubscribed: boolean = false;
 	public orderSubscribed: boolean = false;
 	public isMakingOrder: boolean = false;
+	public isTokenSet: boolean = false;
+
+	constructor(option: IOption, web3Util: Web3Util, orderMakerUtil: OrderMakerUtil) {
+		(this.pair = option.token + '|' + CST.TOKEN_WETH), (this.web3Util = web3Util);
+		this.orderMakerUtil = orderMakerUtil;
+		this.contractType = option.type;
+		this.contractTenor = option.tenor;
+		if (option.token.toLowerCase().includes('b') || option.token.toLowerCase().includes('l'))
+			this.tokenIndex = 1;
+	}
 
 	public connectToRelayer(option: IOption) {
-		this.ws = new WebSocket(`wss://relayer.${option.live ? 'live' : 'dev'}.israfel.info:8080`);
+		this.ws = new WebSocket(`wss://relayer.${option.env}.israfel.info:8080`);
 		this.ws.onopen = () => {
 			console.log('reconnect');
 			this.reconnectionNumber = 0;
@@ -126,7 +132,9 @@ class MakeDepthUtil {
 	}
 
 	public handleOrdesResponse(ordersResponse: any) {
-		util.logDebug(`new order, method:  ${ordersResponse.method}, orderHash: ${ordersResponse.orderHas}`);
+		util.logDebug(
+			`new order, method:  ${ordersResponse.method}, orderHash: ${ordersResponse.orderHas}`
+		);
 	}
 
 	private async handleOrderBookUpdate() {
@@ -311,6 +319,7 @@ class MakeDepthUtil {
 			return;
 		}
 		this.web3Util.setTokens(tokens);
+		this.isTokenSet = true;
 		const token = tokens.find(t => t.code === this.pair.split('|')[0]);
 		if (token) this.contractAddress = token.custodian;
 		const newAcceptedPrice =
@@ -320,7 +329,6 @@ class MakeDepthUtil {
 			this.lastAcceptedPrice = acceptedPrices[this.contractAddress].length
 				? newAcceptedPrice
 				: null;
-		// TODO handle nav change
 
 		if (!this.orderBookSubscribed) {
 			this.subscribeOrderBook(this.pair);
@@ -363,59 +371,45 @@ class MakeDepthUtil {
 		else util.logDebug('We have tried 6 times. Please try again later');
 	}
 
-	public getTokenIndex(option: IOption) {
-		if (option.token.toLowerCase().includes('b') || option.token.toLowerCase().includes('l'))
-			this.tokenIndex = 1;
-	}
-
-	public async startMake(
-		contractUtil: ContractUtil,
-		web3Wrapper: Web3Wrapper,
-		web3Util: Web3Util,
-		option: IOption
-	) {
-		util.logInfo(`makeDepth for ${option.token}`);
-
-		this.web3Util = web3Util;
-		this.web3Wrapper = web3Wrapper;
-		this.contractUtil = contractUtil;
-		const orderMakerUtil: OrderMakerUtil = new OrderMakerUtil(
-			web3Util,
-			this.ws as WebSocket,
-			contractUtil
-		);
-		this.orderMakerUtil = orderMakerUtil;
+	public async startMake(contractUtil: ContractUtil, option: IOption) {
+		util.logInfo(`makeDepth for ${this.pair}`);
 		await this.orderMakerUtil.setAvailableAddrs(option);
-		util.logInfo(`avaialbel address are ${JSON.stringify(this.orderMakerUtil.availableAddrs)}`);
-
-		this.getTokenIndex(option);
-
-		this.pair = option.token + '|' + CST.TOKEN_WETH;
-		this.contractType = option.type;
-		this.contractTenor = option.tenor;
-		const tokens = await israfelDynamoUtil.scanTokens();
-		await web3Util.setTokens(tokens);
-
-		this.orderMakerUtil.availableAddrs = await contractUtil.checkBalance(
-			this.pair,
-			this.tokenIndex,
-			this.orderMakerUtil.availableAddrs
+		util.logDebug(
+			`avaialbel address are ${JSON.stringify(this.orderMakerUtil.availableAddrs)}`
 		);
-
-		if (!this.orderMakerUtil.availableAddrs.length) throw new Error('no available accounts');
 
 		await this.connectToRelayer(option);
+		if (!this.ws) throw new Error('no ws client initied');
+		this.orderMakerUtil.setWs(this.ws);
+
+		let waitNums = 0;
+		while (!this.isTokenSet && waitNums < 6) {
+			util.logDebug(`wait tokens to be set`);
+			util.sleep(1000);
+			waitNums++;
+		}
+
+		const availableAddrs = this.orderMakerUtil.availableAddrs;
+
+		if (this.isTokenSet) {
+			this.orderMakerUtil.availableAddrs = await contractUtil.checkBalance(
+				this.pair,
+				this.tokenIndex,
+				availableAddrs
+			);
+
+			if (!this.orderMakerUtil.availableAddrs.length)
+				throw new Error('no available accounts');
+		} else throw new Error('tokens data have not been received, pls check relayer...');
+
 		setInterval(
 			() =>
 				contractUtil.checkBalance(
 					this.pair,
 					this.tokenIndex,
-					orderMakerUtil.availableAddrs
+					availableAddrs
 				),
-			CST.ONE_MINUTE_MS * 30
+			CST.ONE_MINUTE_MS * 20
 		);
 	}
 }
-
-const makeDepthUtil = new MakeDepthUtil();
-export default makeDepthUtil;

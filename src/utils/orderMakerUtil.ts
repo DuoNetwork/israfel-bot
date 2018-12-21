@@ -15,14 +15,13 @@ import util from './util';
 // import {  } from '../../../israfel-relayer/src/common/types';
 
 export class OrderMakerUtil {
-	public web3Util: Web3Util | null = null;
+	public web3Util: Web3Util;
 	public ws: WebSocket | null = null;
 	public availableAddrs: string[] = [];
 	public currentAddrIdx: number = 0;
-	public contractUtil: ContractUtil | null = null;
-	constructor(web3Util: Web3Util, ws: WebSocket, contractUtil: ContractUtil) {
+	public contractUtil: ContractUtil;
+	constructor(web3Util: Web3Util, contractUtil: ContractUtil) {
 		this.web3Util = web3Util;
-		this.ws = ws;
 		this.contractUtil = contractUtil;
 	}
 
@@ -40,6 +39,10 @@ export class OrderMakerUtil {
 		const allAddrs = await this.web3Util.getAvailableAddresses();
 		const idxs = CST.AVAILABLE_ADDR_IDX[option.type + '|' + option.tenor];
 		this.availableAddrs = allAddrs.slice(idxs[0], idxs[1] + 1);
+	}
+
+	public setWs(ws: WebSocket) {
+		this.ws = ws;
 	}
 
 	public async placeOrder(
