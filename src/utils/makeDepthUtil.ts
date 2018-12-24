@@ -41,7 +41,8 @@ export class MakeDepthUtil {
 	public isTokenSet: boolean = false;
 
 	constructor(option: IOption, web3Util: Web3Util, orderMakerUtil: OrderMakerUtil) {
-		(this.pair = option.token + '|' + CST.TOKEN_WETH), (this.web3Util = web3Util);
+		this.pair = option.token + '|' + CST.TOKEN_WETH;
+		this.web3Util = web3Util;
 		this.orderMakerUtil = orderMakerUtil;
 		this.contractType = option.type;
 		this.contractTenor = option.tenor;
@@ -58,7 +59,7 @@ export class MakeDepthUtil {
 		this.ws.onmessage = (m: any) => this.handleMessage(m.data.toString());
 		this.ws.onerror = () => this.reconnect(option);
 		this.ws.onclose = () => this.reconnect(option);
-		if (this.orderMakerUtil) this.orderMakerUtil.ws = this.ws;
+		if (this.orderMakerUtil) this.orderMakerUtil.setWs(this.ws);
 	}
 
 	public subscribeOrderBook(pair: string) {

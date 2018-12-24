@@ -1,7 +1,5 @@
 import {  BEETHOVEN, MOZART, TENOR_M19, TENOR_PPT } from '../../../duo-admin/src/common/constants';
-
 export * from '../../../duo-admin/src/common/constants';
-
 export {
 	WS_UNSUB,
 	DB_ORDERS,
@@ -16,7 +14,6 @@ export {
 	TOKEN_WETH,
 	ONE_MINUTE_MS
 } from '../../../israfel-relayer/src/common/constants';
-
 export {
 	BEETHOVEN,
 	MOZART,

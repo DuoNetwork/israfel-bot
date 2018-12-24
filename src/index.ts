@@ -2,7 +2,6 @@
 import '@babel/polyfill';
 import dynamoUtil from '../../duo-admin/src/utils/dynamoUtil';
 import Web3Wrapper from '../../duo-contract-wrapper/src/Web3Wrapper';
-// import israfelDynamoUtil from '../../israfel-relayer/src/utils/dynamoUtil';
 import Web3Util from '../../israfel-relayer/src/utils/Web3Util';
 import * as CST from './common/constants';
 import { IOption } from './common/types';
@@ -18,7 +17,7 @@ const option: IOption = util.parseOptions(process.argv);
 
 if (!option.provider) {
 	const infura = require('./keys/infura.json');
-	option.source = 'infura';
+	option.source = CST.SRC_INFURA;
 	option.provider =
 		(option.live ? CST.PROVIDER_INFURA_MAIN : CST.PROVIDER_INFURA_KOVAN) + '/' + infura.token;
 }
