@@ -51,6 +51,8 @@ export class OrderMakerUtil {
 		amount: number,
 		pair: string
 	): Promise<boolean> {
+		console.log("############");
+		console.log(this.web3Util);
 		if (!this.web3Util) throw new Error('no web3Util initiated');
 		if (!this.web3Util.isValidPair(pair)) throw new Error('invalid pair');
 		const [code1, code2] = pair.split('|');

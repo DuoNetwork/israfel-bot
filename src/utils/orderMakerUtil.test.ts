@@ -74,5 +74,5 @@ test('takeOneSideOrder', async () => {
 // test('placeOrder', async () => {
 // 	const orderMakerUtil = new OrderMakerUtil(null as any, contractUtil);
 // 	orderMakerUtil.web3Util = null as any;
-// 	expect(() => orderMakerUtil.placeOrder(true, 0.0012, 10, 'pair')).toThrowError();
+// 	expect(() => orderMakerUtil.placeOrder(true, 0.0012, 10, 'pair')).toThrowErrorMatchingSnapshot();
 // });
