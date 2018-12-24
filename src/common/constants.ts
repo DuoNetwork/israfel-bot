@@ -47,6 +47,9 @@ export const SRC = [
 	API_GDAX
 ];
 
+export const MIN_ORDER_BOOK_LEVELS = 3;
+export const MIN_SIDE_LIQUIDITY = 50;
+
 export const MIN_ETH_BALANCE = 3;
 export const MIN_WETH_BALANCE = 3;
 export const MIN_TOKEN_BALANCE = 150;

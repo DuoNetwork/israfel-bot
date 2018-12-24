@@ -8,6 +8,7 @@ import {
 	IAcceptedPrice,
 	IOption,
 	IOrderBookSnapshot,
+	IOrderBookSnapshotLevel,
 	IToken,
 	IWsInfoResponse,
 	IWsOrderBookResponse,
@@ -85,6 +86,22 @@ export class MakeDepthUtil {
 		this.ws.send(JSON.stringify(msg));
 	}
 
+	private getSideTotalLiquidity(side: IOrderBookSnapshotLevel[]): number {
+		return side
+			.map(ask => ask.balance)
+			.reduce((accumulator, currentValue) => accumulator + currentValue);
+	}
+
+	private getSideAmtToCreate(currentSideLevel: number, currentSideLiquidity: number): number {
+		return currentSideLevel >= 3
+			? 50 - currentSideLiquidity
+			: currentSideLevel === 2
+			? Math.max(50 - currentSideLiquidity, 20)
+			: currentSideLevel === 1
+			? Math.max(50 - currentSideLiquidity, 40)
+			: 50;
+	}
+
 	public async handleOrderBookResponse(orderBookResponse: IWsResponse) {
 		if (orderBookResponse.status !== CST.WS_OK) util.logDebug('orderBook error');
 		else if (orderBookResponse.method === CST.DB_SNAPSHOT)
@@ -100,7 +117,7 @@ export class MakeDepthUtil {
 				this.orderBookSnapshot = (orderBookResponse as IWsOrderBookResponse).orderBookSnapshot;
 				if (!this.isMakingOrder) {
 					this.isMakingOrder = true;
-					await this.handleOrderBookUpdate();
+					await this.startMakingOrders();
 				}
 			}
 		else {
@@ -115,18 +132,15 @@ export class MakeDepthUtil {
 				orderBookUtil.updateOrderBookSnapshot(this.orderBookSnapshot, obUpdate);
 				if (
 					!this.isMakingOrder &&
-					(this.orderBookSnapshot.bids.length < 3 ||
-						this.orderBookSnapshot.asks.length < 3 ||
-						this.orderBookSnapshot.asks
-							.map(ask => ask.balance)
-							.reduce((accumulator, currentValue) => accumulator + currentValue) <
-							40 ||
-						this.orderBookSnapshot.bids
-							.map(bid => bid.balance)
-							.reduce((accumulator, currentValue) => accumulator + currentValue) < 40)
+					(this.orderBookSnapshot.bids.length < CST.MIN_ORDER_BOOK_LEVELS ||
+						this.orderBookSnapshot.asks.length < CST.MIN_ORDER_BOOK_LEVELS ||
+						this.getSideTotalLiquidity(this.orderBookSnapshot.asks) <
+							CST.MIN_SIDE_LIQUIDITY ||
+						this.getSideTotalLiquidity(this.orderBookSnapshot.bids) <
+							CST.MIN_SIDE_LIQUIDITY)
 				) {
 					this.isMakingOrder = true;
-					await this.handleOrderBookUpdate();
+					await this.startMakingOrders();
 				}
 			} else util.logDebug(`update comes before snapshot`);
 		}
@@ -138,9 +152,9 @@ export class MakeDepthUtil {
 		);
 	}
 
-	private async handleOrderBookUpdate() {
-		util.logInfo(`anlayzing new orderBookSnapshot`);
-		if (!this.orderBookSnapshot || !this.orderMakerUtil || !this.lastAcceptedPrice) {
+	private async startMakingOrders() {
+		util.logInfo(`start anlayzing new orderBookSnapshot`);
+		if (!this.orderBookSnapshot || !this.lastAcceptedPrice) {
 			util.logDebug(`no orderBookSnapshot or orderMakerUtil or lastAcceptedPrice, pls check`);
 			return;
 		}
@@ -148,68 +162,72 @@ export class MakeDepthUtil {
 		const expectedMidPrice = util.round(
 			(this.tokenIndex === 0 ? this.lastAcceptedPrice.navA : this.lastAcceptedPrice.navB) /
 				this.lastAcceptedPrice.price,
-			CST.PRICE_ROUND - 1 + ''
+			CST.PRICE_ROUND - 1
 		);
 
-		util.logInfo(`expected midprice of pair ${this.pair} is ${expectedMidPrice}`);
+		util.logDebug(`expected midprice of pair ${this.pair} is ${expectedMidPrice}`);
 
-		let createBidAmount = 0;
-		let createAskAmount = 0;
-		let numOfBidOrders = 0;
-		let numOfAskOrders = 0;
-		const existingBidPriceLevel = this.orderBookSnapshot.bids.map(bid => bid.price);
-		const existingAskPriceLevel = this.orderBookSnapshot.asks.map(ask => ask.price);
+		let bidAmountToCreate = 0;
+		let askAmountToCreate = 0;
+		let numOfBidOrdersToPlace = 0;
+		let numOfAskOrdersToPlace = 0;
+		const existingBidPrices = this.orderBookSnapshot.bids.map(bid => bid.price);
+		const existingAskPrices = this.orderBookSnapshot.asks.map(ask => ask.price);
 		let currentAskLevels = this.orderBookSnapshot.asks.length;
 		let currentBidLevels = this.orderBookSnapshot.bids.length;
 
 		if (!currentBidLevels && !currentAskLevels) {
-			util.logInfo(`no bids and asks, need to create brand new orderBook`);
-			createAskAmount = 50;
-			createBidAmount = 50;
-			numOfBidOrders = 3;
-			numOfAskOrders = 3;
+			util.logDebug(`no bids and asks, need to create whole new orderBook`);
+			askAmountToCreate = CST.MIN_SIDE_LIQUIDITY;
+			bidAmountToCreate = CST.MIN_SIDE_LIQUIDITY;
+			numOfBidOrdersToPlace = CST.MIN_ORDER_BOOK_LEVELS;
+			numOfAskOrdersToPlace = CST.MIN_ORDER_BOOK_LEVELS;
 		} else if (!currentBidLevels && currentAskLevels) {
-			util.logInfo(`no bids ,have asks`);
+			util.logDebug(`no bids ,have asks`);
 			const bestAskPrice = this.orderBookSnapshot.asks[0].price;
-			const totalLiquidity = this.orderBookSnapshot.asks
-				.map(ask => ask.balance)
-				.reduce((accumulator, currentValue) => accumulator + currentValue);
-			util.logInfo(
+			const totalLiquidity = this.getSideTotalLiquidity(this.orderBookSnapshot.asks);
+			util.logDebug(
 				`best ask price is ${bestAskPrice} with totalLiquilidty ${totalLiquidity}`
 			);
 			if (bestAskPrice > expectedMidPrice) {
-				createAskAmount = 50 - totalLiquidity;
-				createBidAmount = 50;
-				numOfBidOrders = 3;
-				numOfAskOrders = 3 - currentAskLevels;
-			} else if (totalLiquidity <= 15 && bestAskPrice < expectedMidPrice) {
+				askAmountToCreate = CST.MIN_SIDE_LIQUIDITY - totalLiquidity;
+				bidAmountToCreate = CST.MIN_SIDE_LIQUIDITY;
+				numOfBidOrdersToPlace = CST.MIN_ORDER_BOOK_LEVELS;
+				numOfAskOrdersToPlace = CST.MIN_ORDER_BOOK_LEVELS - currentAskLevels;
+			} else if (bestAskPrice <= expectedMidPrice) {
 				util.logDebug(`ask side liquidity not enough, take all and recreate orderBook`);
-				// take all
+				// take one side
 				await this.orderMakerUtil.takeOneSideOrders(
 					this.pair,
 					false,
 					this.orderBookSnapshot.asks.filter(ask => ask.price <= expectedMidPrice)
 				);
-				createAskAmount = 50;
-				createBidAmount = 50;
-				numOfBidOrders = 3;
-				numOfAskOrders = 3;
+
+				bidAmountToCreate = CST.MIN_SIDE_LIQUIDITY;
+				numOfBidOrdersToPlace = CST.MIN_ORDER_BOOK_LEVELS;
+
+				currentAskLevels = this.orderBookSnapshot.asks.filter(
+					ask => ask.price > expectedMidPrice
+				).length;
+				const totalAskLiquidity = this.getSideTotalLiquidity(
+					this.orderBookSnapshot.asks.filter(ask => ask.price > expectedMidPrice)
+				);
+				askAmountToCreate = this.getSideAmtToCreate(currentAskLevels, totalAskLiquidity);
+				numOfAskOrdersToPlace = Math.max(3 - CST.MIN_ORDER_BOOK_LEVELS, 1);
 			}
 		} else if (!currentAskLevels && currentBidLevels) {
-			util.logInfo(`no asks, have bids`);
+			util.logDebug(`no asks, have bids`);
 			const bestBidPrice = this.orderBookSnapshot.bids[0].price;
-			const totalLiquidity = this.orderBookSnapshot.bids
-				.map(bid => bid.balance)
-				.reduce((accumulator, currentValue) => accumulator + currentValue);
-			util.logInfo(
+			const totalLiquidity = this.getSideTotalLiquidity(this.orderBookSnapshot.bids);
+			util.logDebug(
 				`best bid price is ${bestBidPrice} with totalLiquilidty ${totalLiquidity}`
 			);
 			if (bestBidPrice < expectedMidPrice) {
-				createBidAmount = 50 - totalLiquidity;
-				createAskAmount = 50;
-				numOfBidOrders = 1;
-				numOfAskOrders = 3;
-			} else if (totalLiquidity <= 15 && bestBidPrice > expectedMidPrice) {
+				bidAmountToCreate = CST.MIN_SIDE_LIQUIDITY - totalLiquidity;
+				askAmountToCreate = CST.MIN_SIDE_LIQUIDITY;
+				numOfBidOrdersToPlace = 3 - currentBidLevels;
+				numOfAskOrdersToPlace = 3;
+			} else if (bestBidPrice > expectedMidPrice) {
 				util.logDebug(`bid side liquidity not enough, take all and recreate orderBook`);
 				// take all
 				await this.orderMakerUtil.takeOneSideOrders(
@@ -217,10 +235,18 @@ export class MakeDepthUtil {
 					true,
 					this.orderBookSnapshot.bids.filter(bid => bid.price >= expectedMidPrice)
 				);
-				createAskAmount = 50;
-				createBidAmount = 50;
-				numOfBidOrders = 3;
-				numOfAskOrders = 3;
+				askAmountToCreate = CST.MIN_SIDE_LIQUIDITY;
+				numOfAskOrdersToPlace = CST.MIN_ORDER_BOOK_LEVELS;
+
+				currentBidLevels = this.orderBookSnapshot.bids.filter(
+					bod => bod.price < expectedMidPrice
+				).length;
+				const totalBidLiquidity = this.getSideTotalLiquidity(
+					this.orderBookSnapshot.bids.filter(bid => bid.price < expectedMidPrice)
+				);
+
+				bidAmountToCreate = this.getSideAmtToCreate(currentBidLevels, totalBidLiquidity);
+				numOfBidOrdersToPlace = Math.max(3 - CST.MIN_ORDER_BOOK_LEVELS, 1);
 			}
 		} else {
 			const bestBidPrice = this.orderBookSnapshot.bids[0].price;
@@ -264,51 +290,37 @@ export class MakeDepthUtil {
 					.reduce((accumulator, currentValue) => accumulator + currentValue);
 			}
 
-			createAskAmount =
-				currentAskLevels >= 3
-					? 50 - totalAskLiquidity
-					: currentAskLevels === 2
-					? Math.max(50 - totalAskLiquidity, 20)
-					: currentAskLevels === 1
-					? Math.max(50 - totalAskLiquidity, 40)
-					: 50;
-			createBidAmount =
-				currentBidLevels >= 3
-					? 50 - totalBidLiquidity
-					: currentBidLevels === 2
-					? Math.max(50 - totalBidLiquidity, 20)
-					: currentBidLevels === 1
-					? Math.max(50 - totalBidLiquidity, 40)
-					: 50;
+			askAmountToCreate = this.getSideAmtToCreate(currentAskLevels, totalAskLiquidity);
 
-			numOfBidOrders = Math.max(3 - currentBidLevels, 1);
-			numOfAskOrders = Math.max(3 - currentAskLevels, 1);
+			bidAmountToCreate = this.getSideAmtToCreate(currentBidLevels, totalBidLiquidity);
+			numOfBidOrdersToPlace = Math.max(3 - currentBidLevels, 1);
+			numOfAskOrdersToPlace = Math.max(3 - currentAskLevels, 1);
 		}
 
-		util.logInfo(`createBidAmount: ${createBidAmount} numOfBidOrders: ${numOfBidOrders}
-		createAskAmount: ${createAskAmount} numOfAskOrders: ${numOfAskOrders}`);
+		util.logInfo(`bidAmountToCreate: ${bidAmountToCreate} numOfBidOrdersToPlace: ${numOfBidOrdersToPlace}
+		askAmountToCreate: ${askAmountToCreate} numOfAskOrdersToPlace: ${numOfAskOrdersToPlace}`);
 
-		if (createAskAmount > 0 && numOfAskOrders > 0)
+		if (askAmountToCreate > 0 && numOfAskOrdersToPlace > 0)
 			await this.orderMakerUtil.createOrderBookSide(
 				this.pair,
 				false,
 				this.contractType,
 				this.contractTenor,
 				expectedMidPrice,
-				createAskAmount,
-				numOfAskOrders,
-				existingAskPriceLevel
+				askAmountToCreate,
+				numOfAskOrdersToPlace,
+				existingAskPrices
 			);
-		if (createBidAmount > 0 && numOfBidOrders)
+		if (bidAmountToCreate > 0 && numOfBidOrdersToPlace)
 			await this.orderMakerUtil.createOrderBookSide(
 				this.pair,
 				true,
 				this.contractType,
 				this.contractTenor,
 				expectedMidPrice,
-				createBidAmount,
-				numOfBidOrders,
-				existingBidPriceLevel
+				bidAmountToCreate,
+				numOfBidOrdersToPlace,
+				existingBidPrices
 			);
 		this.isMakingOrder = false;
 	}
@@ -404,12 +416,7 @@ export class MakeDepthUtil {
 		} else throw new Error('tokens data have not been received, pls check relayer...');
 
 		setInterval(
-			() =>
-				contractUtil.checkBalance(
-					this.pair,
-					this.tokenIndex,
-					availableAddrs
-				),
+			() => contractUtil.checkBalance(this.pair, this.tokenIndex, availableAddrs),
 			CST.ONE_MINUTE_MS * 20
 		);
 	}

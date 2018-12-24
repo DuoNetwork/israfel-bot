@@ -88,7 +88,7 @@ class Util {
 		return option;
 	}
 
-	public round(num: string | number, digit: string) {
+	public round(num: string | number, digit: number) {
 		return +(Math.floor((num + 'e+' + digit) as any) + 'e-' + digit);
 	}
 

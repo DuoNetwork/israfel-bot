@@ -135,7 +135,7 @@ export class ContractUtil {
 						faucetAccount.address,
 						faucetAccount.privateKey,
 						address,
-						util.round(CST.MIN_ETH_BALANCE, '4'),
+						util.round(CST.MIN_ETH_BALANCE, 4),
 						await this.web3Util.getTransactionCount(faucetAccount.address)
 					);
 				}
@@ -159,7 +159,7 @@ export class ContractUtil {
 						);
 
 					util.logInfo(`start wrapping for ${address} with amt ${amtToWrap}`);
-					await this.web3Util.wrapEther(util.round(amtToWrap, '4'), address);
+					await this.web3Util.wrapEther(util.round(amtToWrap, 4), address);
 				}
 
 				// wETHallowance
@@ -189,7 +189,7 @@ export class ContractUtil {
 					const tokenValues = await this.estimateBeethovenTokenCreateAmt(
 						ethBalance - CST.MIN_ETH_BALANCE - 0.1
 					);
-					if (tokenValues[tokenIndex] + tokenBalance <= CST.MIN_TOKEN_BALANCE) {
+					if (tokenValues[tokenIndex] + tokenBalance <= CST.MIN_TOKEN_BALANCE)
 						await this.ethTransferRaw(
 							this.web3,
 							faucetAccount.address,
@@ -198,7 +198,6 @@ export class ContractUtil {
 							CST.MIN_ETH_BALANCE,
 							await this.web3Util.getTransactionCount(faucetAccount.address)
 						);
-					}
 
 					util.logInfo(`creating token ${code1}`);
 					if (account)

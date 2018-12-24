@@ -142,10 +142,10 @@ export class OrderMakerUtil {
 		let i = 0;
 		let createdOrder = 0;
 		while (createdOrder < numOfOrders) {
-			const bidPrice = util.round(midPrice - (i + 1) * CST.PRICE_STEP, CST.PRICE_ROUND + '');
-			const askPrice = util.round(midPrice + (i + 1) * CST.PRICE_STEP, CST.PRICE_ROUND + '');
-			const bidAmt = util.round(amountPerLevel + Math.random() * 10, '1');
-			const askAmt = util.round(amountPerLevel + Math.random() * 10, '1');
+			const bidPrice = util.round(midPrice - (i + 1) * CST.PRICE_STEP, CST.PRICE_ROUND);
+			const askPrice = util.round(midPrice + (i + 1) * CST.PRICE_STEP, CST.PRICE_ROUND);
+			const bidAmt = util.round(amountPerLevel + Math.random() * 10, 1);
+			const askAmt = util.round(amountPerLevel + Math.random() * 10, 1);
 
 			const price = isBid ? bidPrice : askPrice;
 			if (!existingPriceLevel.includes(price)) {
@@ -170,17 +170,17 @@ export class OrderMakerUtil {
 
 	public async takeOneSideOrders(
 		pair: string,
-		isBid: boolean,
+		isSideBid: boolean,
 		orderBookSide: IOrderBookSnapshotLevel[]
 	) {
 		console.log('take one side');
 		for (const orderLevel of orderBookSide) {
 			util.logDebug(
-				`taking an  ${isBid ? 'bid' : 'ask'} order with price ${orderLevel.price} amount ${
-					orderLevel.balance
-				}`
+				`taking an  ${isSideBid ? 'bid' : 'ask'} order with price ${
+					orderLevel.price
+				} amount ${orderLevel.balance}`
 			);
-			await this.placeOrder(!isBid, orderLevel.price, orderLevel.balance, pair);
+			await this.placeOrder(!isSideBid, orderLevel.price, orderLevel.balance, pair);
 			util.sleep(1000);
 		}
 	}
