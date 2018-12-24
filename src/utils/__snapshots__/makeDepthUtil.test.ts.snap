@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`startMakingOrders no orderBook 1`] = `
+Array [
+  Array [
+    "token|WETH",
+    false,
+    "type",
+    "tenor",
+    0.012,
+    50,
+    3,
+    Array [],
+  ],
+  Array [
+    "token|WETH",
+    true,
+    "type",
+    "tenor",
+    0.012,
+    50,
+    3,
+    Array [],
+  ],
+]
+`;

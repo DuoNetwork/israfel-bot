@@ -12,7 +12,6 @@ import {
 } from '../common/types';
 import { ContractUtil } from './contractUtil';
 import util from './util';
-// import {  } from '../../../israfel-relayer/src/common/types';
 
 export class OrderMakerUtil {
 	public web3Util: Web3Util;

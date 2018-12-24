@@ -152,7 +152,7 @@ export class MakeDepthUtil {
 		);
 	}
 
-	private async startMakingOrders() {
+	public async startMakingOrders() {
 		util.logInfo(`start anlayzing new orderBookSnapshot`);
 		if (!this.orderBookSnapshot || !this.lastAcceptedPrice) {
 			util.logDebug(`no orderBookSnapshot or orderMakerUtil or lastAcceptedPrice, pls check`);
@@ -251,15 +251,8 @@ export class MakeDepthUtil {
 		} else {
 			const bestBidPrice = this.orderBookSnapshot.bids[0].price;
 			const bestAskPrice = this.orderBookSnapshot.asks[0].price;
-
-			let totalBidLiquidity = this.orderBookSnapshot.bids
-				.map(bid => bid.balance)
-				.reduce((accumulator, currentValue) => accumulator + currentValue);
-
-			let totalAskLiquidity = this.orderBookSnapshot.asks
-				.map(ask => ask.balance)
-				.reduce((accumulator, currentValue) => accumulator + currentValue);
-
+			let totalBidLiquidity = this.getSideTotalLiquidity(this.orderBookSnapshot.bids);
+			let totalAskLiquidity = this.getSideTotalLiquidity(this.orderBookSnapshot.asks);
 			if (expectedMidPrice > bestAskPrice) {
 				await this.orderMakerUtil.takeOneSideOrders(
 					this.pair,
@@ -270,10 +263,9 @@ export class MakeDepthUtil {
 				currentAskLevels = this.orderBookSnapshot.asks.filter(
 					ask => ask.price > expectedMidPrice
 				).length;
-				totalAskLiquidity = this.orderBookSnapshot.asks
-					.filter(ask => ask.price > expectedMidPrice)
-					.map(ask => ask.balance)
-					.reduce((accumulator, currentValue) => accumulator + currentValue);
+				totalAskLiquidity = this.getSideTotalLiquidity(
+					this.orderBookSnapshot.asks.filter(ask => ask.price > expectedMidPrice)
+				);
 			} else if (expectedMidPrice < bestBidPrice) {
 				await this.orderMakerUtil.takeOneSideOrders(
 					this.pair,
@@ -284,14 +276,12 @@ export class MakeDepthUtil {
 				currentBidLevels = this.orderBookSnapshot.bids.filter(
 					bid => bid.price < expectedMidPrice
 				).length;
-				totalBidLiquidity = this.orderBookSnapshot.bids
-					.filter(bid => bid.price < expectedMidPrice)
-					.map(bid => bid.balance)
-					.reduce((accumulator, currentValue) => accumulator + currentValue);
+				totalBidLiquidity = this.getSideTotalLiquidity(
+					this.orderBookSnapshot.bids.filter(bid => bid.price < expectedMidPrice)
+				);
 			}
 
 			askAmountToCreate = this.getSideAmtToCreate(currentAskLevels, totalAskLiquidity);
-
 			bidAmountToCreate = this.getSideAmtToCreate(currentBidLevels, totalBidLiquidity);
 			numOfBidOrdersToPlace = Math.max(3 - currentBidLevels, 1);
 			numOfAskOrdersToPlace = Math.max(3 - currentAskLevels, 1);
