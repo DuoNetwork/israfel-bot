@@ -48,3 +48,13 @@ export interface IAccounts {
 	address: string;
 	privateKey: string;
 }
+
+export interface ICreateOB  {
+	pair: string;
+	isBid: boolean;
+	contractTenor: string;
+	midPrice: number;
+	totalSize: number;
+	numOfOrders: number;
+	existingPriceLevel: number[]
+}

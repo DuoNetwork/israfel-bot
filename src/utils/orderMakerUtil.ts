@@ -5,6 +5,7 @@ import orderUtil from '../../../israfel-relayer/src/utils/orderUtil';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
 import * as CST from '../common/constants';
 import {
+	ICreateOB,
 	IOption,
 	IOrderBookSnapshotLevel,
 	IStringSignedOrder,
@@ -113,21 +114,19 @@ export class OrderMakerUtil {
 		return true;
 	}
 
-	private async createBeethovenOrderBook(
-		pair: string,
-		isBid: boolean,
-		contractTenor: string,
-		midPrice: number,
-		totalSize: number,
-		numOfOrders: number,
-		existingPriceLevel: number[]
-	) {
-		if (!this.contractUtil) {
-			util.logDebug(`no contractUtil initiated`);
-			return;
-		}
+	public async createDualTokenOrderBook(createOb: ICreateOB) {
+		const {
+			pair,
+			isBid,
+			contractTenor,
+			midPrice,
+			totalSize,
+			numOfOrders,
+			existingPriceLevel
+		} = createOb;
+
 		if (![CST.TENOR_PPT, CST.TENOR_M19].includes(contractTenor)) {
-			util.logInfo('wrong contract tenor');
+			util.logDebug('wrong contract tenor');
 			return;
 		}
 		const amountPerLevel = totalSize / numOfOrders;
@@ -198,22 +197,17 @@ export class OrderMakerUtil {
 			util.logDebug(`no contractUtil initiated`);
 			return;
 		}
-		switch (contractType) {
-			case CST.BEETHOVEN:
-				await this.createBeethovenOrderBook(
-					pair,
-					isBid,
-					contractTenor,
-					midPrice,
-					totalSize,
-					numOfOrders,
-					existingPriceLevel
-				);
-				break;
-			default:
-				util.logDebug(`incorrect contract type specified`);
-				return;
-		}
+		if (contractType === CST.BEETHOVEN || contractType === CST.MOZART)
+			await this.createDualTokenOrderBook({
+				pair,
+				isBid,
+				contractTenor,
+				midPrice,
+				totalSize,
+				numOfOrders,
+				existingPriceLevel
+			});
+		else util.logDebug(`incorrect contract type specified`);
 	}
 
 	public async validateOrder(
@@ -233,8 +227,6 @@ export class OrderMakerUtil {
 		}
 
 		try {
-			console.log('validate order #####################');
-			console.log(stringSignedOrder);
 			const orderHash = await orderUtil.validateOrder(
 				this.web3Util,
 				pair,

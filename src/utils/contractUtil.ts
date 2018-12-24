@@ -59,7 +59,7 @@ export class ContractUtil {
 		else return [navA / price, navParent - navAAdj / price];
 	}
 
-	public async estimateBeethovenTokenCreateAmt(ethAmount: number): Promise<number[]> {
+	public async estimateDualTokenCreateAmt(ethAmount: number): Promise<number[]> {
 		if (!this.dualClassCustodianWrapper || ethAmount <= 0) {
 			util.logInfo(`no dualClassWrapper initiated`);
 			return [];
@@ -186,7 +186,7 @@ export class ContractUtil {
 						`the address ${address} current token balance of ${code1} is ${tokenBalance}, need create more tokens...`
 					);
 
-					const tokenValues = await this.estimateBeethovenTokenCreateAmt(
+					const tokenValues = await this.estimateDualTokenCreateAmt(
 						ethBalance - CST.MIN_ETH_BALANCE - 0.1
 					);
 					if (tokenValues[tokenIndex] + tokenBalance <= CST.MIN_TOKEN_BALANCE)
