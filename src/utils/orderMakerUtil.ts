@@ -51,13 +51,11 @@ export class OrderMakerUtil {
 		amount: number,
 		pair: string
 	): Promise<boolean> {
-		console.log("############");
-		console.log(this.web3Util);
 		if (!this.web3Util) throw new Error('no web3Util initiated');
 		if (!this.web3Util.isValidPair(pair)) throw new Error('invalid pair');
 		const [code1, code2] = pair.split('|');
 		const token1 = this.web3Util.getTokenByCode(code1);
-		if (!token1) throw new Error('invalid pair');
+		if (!token1) throw new Error('invalid token');
 		const address1 = token1.address;
 		const address2 = this.web3Util.getTokenAddressFromCode(code2);
 
@@ -99,10 +97,7 @@ export class OrderMakerUtil {
 			orderHash: rawOrder.orderHash,
 			order: rawOrder.signedOrder
 		};
-		if (!this.ws) {
-			console.log('no client initiated');
-			return false;
-		}
+		if (!this.ws) throw new Error('no client initiated');
 
 		util.logInfo(
 			'send add order request' +

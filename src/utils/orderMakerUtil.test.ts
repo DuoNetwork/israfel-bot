@@ -1,6 +1,7 @@
 // fix for @ledgerhq/hw-transport-u2f 4.28.0
 import '@babel/polyfill';
 import Web3Wrapper from '../../../duo-contract-wrapper/src/Web3Wrapper';
+import orderUtil from '../../../israfel-relayer/src/utils/orderUtil';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
 import { ContractUtil } from './contractUtil';
 import { OrderMakerUtil } from './orderMakerUtil';
@@ -72,8 +73,227 @@ test('takeOneSideOrder', async () => {
 	expect((orderMakerUtil.placeOrder as jest.Mock).mock.calls).toMatchSnapshot();
 });
 
-// test('placeOrder', async () => {
-// 	const orderMakerUtil = new OrderMakerUtil(null as any, contractUtil);
-// 	orderMakerUtil.web3Util = null as any;
-// 	expect(() => orderMakerUtil.placeOrder(true, 0.0012, 10, 'pair')).toThrowErrorMatchingSnapshot();
-// });
+test('placeOrder, throw error no web3Util', async () => {
+	const orderMakerUtil = new OrderMakerUtil(null as any, contractUtil);
+	orderMakerUtil.web3Util = null as any;
+	try {
+		await orderMakerUtil.placeOrder(true, 0.0012, 10, 'pair');
+	} catch (error) {
+		expect(error).toMatchSnapshot();
+	}
+});
+
+test('placeOrder, throw error inValid Pair', async () => {
+	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+	orderMakerUtil.web3Util.isValidPair = jest.fn(() => false);
+	try {
+		await orderMakerUtil.placeOrder(true, 0.0012, 10, 'pair');
+	} catch (error) {
+		expect(error).toMatchSnapshot();
+	}
+});
+
+test('placeOrder, invalid token', async () => {
+	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+	orderMakerUtil.web3Util.isValidPair = jest.fn(() => true);
+	orderMakerUtil.web3Util.getTokenByCode = jest.fn(() => null);
+	try {
+		await orderMakerUtil.placeOrder(true, 0.0012, 10, 'aETH|WETH');
+	} catch (error) {
+		expect(error).toMatchSnapshot();
+	}
+});
+
+test('placeOrder, no takerAssetAmount', async () => {
+	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+	orderMakerUtil.web3Util.isValidPair = jest.fn(() => true);
+	orderMakerUtil.web3Util.getTokenByCode = jest.fn(() =>
+		Object.assign({
+			custodian: '0xcustodian',
+			address: '0xaddress',
+			code: 'code',
+			denomination: 0.1,
+			precisions: {
+				WETH: 0.000005
+			},
+			feeSchedules: { WETH: { minimum: 0.1, rate: 0.005 } }
+		})
+	);
+	try {
+		orderUtil.getAmountAfterFee = jest.fn(() =>
+			Object.assign({
+				takerAssetAmount: 0,
+				makerAssetAmount: 0
+			})
+		);
+		await orderMakerUtil.placeOrder(true, 0.0012, 10, 'aETH|WETH');
+	} catch (error) {
+		expect(error).toMatchSnapshot();
+	}
+});
+
+test('placeOrder, rawOrder validation error', async () => {
+	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+	orderMakerUtil.web3Util.isValidPair = jest.fn(() => true);
+	orderMakerUtil.web3Util.getTokenByCode = jest.fn(() =>
+		Object.assign({
+			custodian: '0xcustodian',
+			address: '0xaddress',
+			code: 'code',
+			denomination: 0.1,
+			precisions: {
+				WETH: 0.000005
+			},
+			feeSchedules: { WETH: { minimum: 0.1, rate: 0.005 } }
+		})
+	);
+	orderMakerUtil.getCurrentAddress = jest.fn(() => 'address');
+	orderMakerUtil.web3Util.createRawOrder = jest.fn(() =>
+		Object.assign({
+			pair: 'pair',
+			orderHash: 'orderHash',
+			signedOrder: {
+				exchangeAddress: 'exchangeAddress',
+				expirationTimeSeconds: '1234567890',
+				feeRecipientAddress: 'feeRecipientAddress',
+				makerAddress: 'makerAddress',
+				makerAssetAmount: '123',
+				makerAssetData: 'makerAssetData',
+				makerFee: '0',
+				salt: '789',
+				senderAddress: 'senderAddress',
+				signature: 'signature',
+				takerAddress: 'takerAddress',
+				takerAssetAmount: '456',
+				takerAssetData: 'takerAssetData',
+				takerFee: '0'
+			}
+		})
+	);
+	orderMakerUtil.validateOrder = jest.fn(() => false);
+	orderUtil.getAmountAfterFee = jest.fn(() =>
+		Object.assign({
+			takerAssetAmount: 10,
+			makerAssetAmount: 10
+		})
+	);
+	try {
+		await orderMakerUtil.placeOrder(true, 0.0012, 10, 'aETH|WETH');
+	} catch (error) {
+		expect(error).toMatchSnapshot();
+	}
+	// expect((orderMakerUtil.web3Util.getTokenByCode as jest.Mock).mock.calls).toMatchSnapshot();
+	// expect((orderMakerUtil.web3Util.createRawOrder as jest.Mock).mock.calls).toMatchSnapshot();
+	// expect((orderMakerUtil.validateOrder as jest.Mock).mock.calls).toMatchSnapshot();
+});
+
+test('placeOrder, rawOrder validation passed no ws client', async () => {
+	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+	orderMakerUtil.web3Util.isValidPair = jest.fn(() => true);
+	orderMakerUtil.ws = null;
+	orderMakerUtil.web3Util.getTokenByCode = jest.fn(() =>
+		Object.assign({
+			custodian: '0xcustodian',
+			address: '0xaddress',
+			code: 'code',
+			denomination: 0.1,
+			precisions: {
+				WETH: 0.000005
+			},
+			feeSchedules: { WETH: { minimum: 0.1, rate: 0.005 } }
+		})
+	);
+	orderMakerUtil.getCurrentAddress = jest.fn(() => true);
+	orderMakerUtil.web3Util.createRawOrder = jest.fn(() =>
+		Object.assign({
+			pair: 'pair',
+			orderHash: 'orderHash',
+			signedOrder: {
+				exchangeAddress: 'exchangeAddress',
+				expirationTimeSeconds: '1234567890',
+				feeRecipientAddress: 'feeRecipientAddress',
+				makerAddress: 'makerAddress',
+				makerAssetAmount: '123',
+				makerAssetData: 'makerAssetData',
+				makerFee: '0',
+				salt: '789',
+				senderAddress: 'senderAddress',
+				signature: 'signature',
+				takerAddress: 'takerAddress',
+				takerAssetAmount: '456',
+				takerAssetData: 'takerAssetData',
+				takerFee: '0'
+			}
+		})
+	);
+	orderMakerUtil.validateOrder = jest.fn(() => 'orderHash');
+	orderUtil.getAmountAfterFee = jest.fn(() =>
+		Object.assign({
+			takerAssetAmount: 10,
+			makerAssetAmount: 10
+		})
+	);
+	try {
+		await orderMakerUtil.placeOrder(true, 0.0012, 10, 'aETH|WETH');
+	} catch (error) {
+		expect(error).toMatchSnapshot();
+	}
+	// expect((orderMakerUtil.web3Util.getTokenByCode as jest.Mock).mock.calls).toMatchSnapshot();
+	// expect((orderMakerUtil.web3Util.createRawOrder as jest.Mock).mock.calls).toMatchSnapshot();
+	// expect((orderMakerUtil.validateOrder as jest.Mock).mock.calls).toMatchSnapshot();
+});
+
+test('placeOrder, success', async () => {
+	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+	orderMakerUtil.web3Util.isValidPair = jest.fn(() => true);
+	orderMakerUtil.ws = {
+		send: jest.fn(() => Promise.resolve())
+	} as any;
+	orderMakerUtil.web3Util.getTokenByCode = jest.fn(() =>
+		Object.assign({
+			custodian: '0xcustodian',
+			address: '0xaddress',
+			code: 'code',
+			denomination: 0.1,
+			precisions: {
+				WETH: 0.000005
+			},
+			feeSchedules: { WETH: { minimum: 0.1, rate: 0.005 } }
+		})
+	);
+	orderMakerUtil.getCurrentAddress = jest.fn(() => true);
+	orderMakerUtil.web3Util.createRawOrder = jest.fn(() =>
+		Object.assign({
+			pair: 'pair',
+			orderHash: 'orderHash',
+			signedOrder: {
+				exchangeAddress: 'exchangeAddress',
+				expirationTimeSeconds: '1234567890',
+				feeRecipientAddress: 'feeRecipientAddress',
+				makerAddress: 'makerAddress',
+				makerAssetAmount: '123',
+				makerAssetData: 'makerAssetData',
+				makerFee: '0',
+				salt: '789',
+				senderAddress: 'senderAddress',
+				signature: 'signature',
+				takerAddress: 'takerAddress',
+				takerAssetAmount: '456',
+				takerAssetData: 'takerAssetData',
+				takerFee: '0'
+			}
+		})
+	);
+	orderMakerUtil.validateOrder = jest.fn(() => 'orderHash');
+	orderUtil.getAmountAfterFee = jest.fn(() =>
+		Object.assign({
+			takerAssetAmount: 10,
+			makerAssetAmount: 10
+		})
+	);
+	await orderMakerUtil.placeOrder(true, 0.0012, 10, 'aETH|WETH');
+	expect(((orderMakerUtil.ws as any).send as jest.Mock).mock.calls).toMatchSnapshot();
+	expect((orderMakerUtil.web3Util.getTokenByCode as jest.Mock).mock.calls).toMatchSnapshot();
+	expect((orderMakerUtil.web3Util.createRawOrder as jest.Mock).mock.calls).toMatchSnapshot();
+	expect((orderMakerUtil.validateOrder as jest.Mock).mock.calls).toMatchSnapshot();
+});
