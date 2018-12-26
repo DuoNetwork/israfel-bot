@@ -1,5 +1,4 @@
 import moment from 'moment';
-import Web3 from 'web3';
 import DualClassWrapper from '../../../duo-contract-wrapper/src/DualClassWrapper';
 import Web3Wrapper from '../../../duo-contract-wrapper/src/Web3Wrapper';
 import Web3Util from '../../../israfel-relayer/src/utils/Web3Util';
@@ -8,13 +7,10 @@ import { IAccounts, IDualClassStates, IOption } from '../common/types';
 import priceUtil from './priceUtil';
 import util from './util';
 
-const Tx = require('ethereumjs-tx');
-
 export class ContractUtil {
 	public dualClassCustodianWrapper: DualClassWrapper;
-	public web3Wrapper: Web3Wrapper | null = null;
+	public web3Wrapper: Web3Wrapper;
 	public web3Util: Web3Util;
-	public web3: Web3;
 
 	constructor(web3Util: Web3Util, web3Wrapper: Web3Wrapper, option: IOption) {
 		this.web3Wrapper = web3Wrapper;
@@ -22,11 +18,6 @@ export class ContractUtil {
 		this.dualClassCustodianWrapper = new DualClassWrapper(
 			web3Wrapper,
 			web3Wrapper.contractAddresses.Custodians[option.type][option.tenor].custodian.address
-		);
-		this.web3 = new Web3(
-			option.source
-				? new Web3.providers.HttpProvider(option.provider)
-				: new Web3.providers.WebsocketProvider(option.provider)
 		);
 	}
 
@@ -80,38 +71,6 @@ export class ContractUtil {
 		};
 	}
 
-	private async ethTransferRaw(
-		web3: Web3,
-		from: string,
-		privatekey: string,
-		to: string,
-		amt: number,
-		nonce: number
-	) {
-		const rawTx = {
-			nonce: nonce,
-			gasPrice: web3.utils.toHex((await web3.eth.getGasPrice()) || CST.DEFAULT_GAS_PRICE),
-			gasLimit: web3.utils.toHex(23000),
-			from: from,
-			to: to,
-			value: web3.utils.toHex(web3.utils.toWei(amt.toPrecision(3) + '', 'ether'))
-		};
-		return web3.eth
-			.sendSignedTransaction('0x' + this.signTx(rawTx, privatekey))
-			.then(receipt => util.logInfo(JSON.stringify(receipt, null, 4)));
-	}
-
-	public signTx(rawTx: object, privateKey: string): string {
-		try {
-			const tx = new Tx(rawTx);
-			tx.sign(new Buffer(privateKey, 'hex'));
-			return tx.serialize().toString('hex');
-		} catch (err) {
-			util.logError(err);
-			return '';
-		}
-	}
-
 	public async checkBalance(
 		pair: string,
 		tokenIndex: number,
@@ -129,8 +88,7 @@ export class ContractUtil {
 					`the address ${address} current eth balance is ${ethBalance}, make transfer...`
 				);
 
-				await this.ethTransferRaw(
-					this.web3,
+				await this.web3Wrapper.ethTransferRaw(
 					faucetAccount.address,
 					faucetAccount.privateKey,
 					address,
@@ -148,8 +106,7 @@ export class ContractUtil {
 				const amtToWrap = CST.MIN_WETH_BALANCE - wEthBalance + 0.1;
 
 				if (ethBalance < amtToWrap)
-					await this.ethTransferRaw(
-						this.web3,
+					await this.web3Wrapper.ethTransferRaw(
 						faucetAccount.address,
 						faucetAccount.privateKey,
 						address,
@@ -189,8 +146,7 @@ export class ContractUtil {
 					ethBalance - CST.MIN_ETH_BALANCE - 0.1
 				);
 				if (tokenAmtToCreate[tokenIndex] + tokenBalance <= CST.MIN_TOKEN_BALANCE)
-					await this.ethTransferRaw(
-						this.web3,
+					await this.web3Wrapper.ethTransferRaw(
 						faucetAccount.address,
 						faucetAccount.privateKey,
 						address,

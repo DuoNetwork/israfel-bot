@@ -36,21 +36,21 @@ test('createDualTokenOrderBook wrong tenor', async () => {
 	expect(orderMakerUtil.placeOrder as jest.Mock).not.toBeCalled();
 });
 
-test('createDualTokenOrderBook', async () => {
-	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
-	orderMakerUtil.placeOrder = jest.fn(() => Promise.resolve(true));
-	util.sleep = jest.fn(() => Promise.resolve());
-	await orderMakerUtil.createDualTokenOrderBook({
-		pair: 'pair',
-		isBid: true,
-		contractTenor: 'M19',
-		midPrice: 0.0012,
-		totalSize: 50,
-		numOfOrders: 3,
-		existingPriceLevel: []
-	});
-	expect((orderMakerUtil.placeOrder as jest.Mock).mock.calls).toMatchSnapshot();
-});
+// test('createDualTokenOrderBook', async () => {
+// 	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+// 	orderMakerUtil.placeOrder = jest.fn(() => Promise.resolve(true));
+// 	util.sleep = jest.fn(() => Promise.resolve());
+// 	await orderMakerUtil.createDualTokenOrderBook({
+// 		pair: 'pair',
+// 		isBid: true,
+// 		contractTenor: 'M19',
+// 		midPrice: 0.0012,
+// 		totalSize: 50,
+// 		numOfOrders: 3,
+// 		existingPriceLevel: []
+// 	});
+// 	expect((orderMakerUtil.placeOrder as jest.Mock).mock.calls).toMatchSnapshot();
+// });
 
 test('takeOneSideOrder', async () => {
 	const orderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
