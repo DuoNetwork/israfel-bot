@@ -173,8 +173,8 @@ export class MakeDepthUtil {
 		let askAmountToCreate = 0;
 		let numOfBidOrdersToPlace = 0;
 		let numOfAskOrdersToPlace = 0;
-		const existingBidPrices = this.orderBookSnapshot.bids.map(bid => bid.price);
-		const existingAskPrices = this.orderBookSnapshot.asks.map(ask => ask.price);
+		let existingBidPrices = this.orderBookSnapshot.bids.map(bid => bid.price);
+		let existingAskPrices = this.orderBookSnapshot.asks.map(ask => ask.price);
 		let currentAskLevels = this.orderBookSnapshot.asks.length;
 		let currentBidLevels = this.orderBookSnapshot.bids.length;
 
@@ -216,7 +216,8 @@ export class MakeDepthUtil {
 					this.orderBookSnapshot.asks.filter(ask => ask.price > expectedMidPrice)
 				);
 				askAmountToCreate = this.getSideAmtToCreate(currentAskLevels, totalAskLiquidity);
-				numOfAskOrdersToPlace = Math.max(3 - CST.MIN_ORDER_BOOK_LEVELS, 1);
+				numOfAskOrdersToPlace = Math.max(3 - currentAskLevels, 1);
+				existingAskPrices = existingAskPrices.filter(price => price > expectedMidPrice);
 			}
 		} else if (!currentAskLevels && currentBidLevels) {
 			util.logInfo(`no asks, have bids`);
@@ -250,7 +251,8 @@ export class MakeDepthUtil {
 				);
 
 				bidAmountToCreate = this.getSideAmtToCreate(currentBidLevels, totalBidLiquidity);
-				numOfBidOrdersToPlace = Math.max(3 - CST.MIN_ORDER_BOOK_LEVELS, 1);
+				numOfBidOrdersToPlace = Math.max(3 - currentBidLevels, 1);
+				existingBidPrices = existingBidPrices.filter(price => price < expectedMidPrice);
 			}
 		} else {
 			util.logInfo(`have both asks and have bids`);
