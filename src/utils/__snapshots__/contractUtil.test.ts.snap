@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`checkBalance, not enought ethBalance 1`] = `
+Array [
+  Array [
+    "0x00D8d0660b243452fC2f996A892D3083A903576F",
+    "16ea9a15dd4381a2ea9c41531fee530e6a78dadc1a86d3e64f207c35f4be1d17",
+    "address0",
+    3,
+    10,
+  ],
+]
+`;
