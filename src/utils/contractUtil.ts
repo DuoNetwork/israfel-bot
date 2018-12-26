@@ -52,7 +52,7 @@ export class ContractUtil {
 
 	public async estimateDualTokenCreateAmt(ethAmount: number): Promise<number[]> {
 		if (!this.dualClassCustodianWrapper || ethAmount <= 0) {
-			util.logInfo(`no dualClassWrapper initiated`);
+			util.logDebug(`no dualClassWrapper initiated`);
 			return [];
 		}
 		const states: IDualClassStates = await this.dualClassCustodianWrapper.getStates();

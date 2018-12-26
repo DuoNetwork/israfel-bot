@@ -211,3 +211,43 @@ test('checkBalance, not enought tokenAllowance', async () => {
 		(contractUtil.web3Util.setUnlimitedTokenAllowance as jest.Mock).mock.calls
 	).toMatchSnapshot();
 });
+
+test('checkBalance, estimateDualTokenCreateAmt', async () => {
+	contractUtil.dualClassCustodianWrapper.getStates = jest.fn(() =>
+		Object.assign({
+			lastOperationTime: 0,
+			operationCoolDown: 0,
+			state: 'trading',
+			minBalance: 0,
+			totalSupplyA: 0,
+			totalSupplyB: 0,
+			ethCollateral: 0,
+			navA: 0,
+			navB: 0,
+			lastPrice: 0,
+			lastPriceTime: 0,
+			resetPrice: 100,
+			resetPriceTime: 0,
+			createCommRate: 0.01,
+			redeemCommRate: 0,
+			period: 60,
+			maturity: 0,
+			preResetWaitingBlocks: 1,
+			priceFetchCoolDown: 1,
+			nextResetAddrIndex: 1,
+			totalUsers: 1,
+			feeBalance: 1,
+			resetState: 2,
+			alpha: 1,
+			beta: 1,
+			periodCoupon: 60,
+			limitPeriodic: 60,
+			limitUpper: 1,
+			limitLower: 1,
+			iterationGasThreshold: 1
+		})
+	);
+
+	const res = await contractUtil.estimateDualTokenCreateAmt(1);
+	expect(res).toMatchSnapshot();
+});

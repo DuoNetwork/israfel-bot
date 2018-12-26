@@ -1,5 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`checkBalance, estimateDualTokenCreateAmt 1`] = `
+Array [
+  200,
+  200,
+]
+`;
+
 exports[`checkBalance, not enought ethBalance 1`] = `
 Array [
   Array [
