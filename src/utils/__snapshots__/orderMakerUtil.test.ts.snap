@@ -1,5 +1,28 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`createDualTokenOrderBook 1`] = `
+Array [
+  Array [
+    true,
+    0.0006,
+    21.6,
+    "pair",
+  ],
+  Array [
+    true,
+    0.0001,
+    21.6,
+    "pair",
+  ],
+  Array [
+    true,
+    -0.0004,
+    21.6,
+    "pair",
+  ],
+]
+`;
+
 exports[`takeOneSideOrder 1`] = `
 Array [
   Array [
