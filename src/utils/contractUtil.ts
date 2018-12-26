@@ -125,8 +125,8 @@ export class ContractUtil {
 				// ethBalance
 				const ethBalance = await this.web3Util.getEthBalance(address);
 				util.logInfo(`the ethBalance of ${address} is ${ethBalance}`);
-				if (ethBalance < CST.MIN_ETH_BALANCE + 0.1) {
-					util.logInfo(
+				if (ethBalance < CST.MIN_ETH_BALANCE) {
+					util.logDebug(
 						`the address ${address} current eth balance is ${ethBalance}, make transfer...`
 					);
 
@@ -143,10 +143,10 @@ export class ContractUtil {
 				// wEthBalance
 				const wEthBalance = await this.web3Util.getTokenBalance(code2, address);
 				if (wEthBalance < CST.MIN_WETH_BALANCE) {
-					util.logInfo(
+					util.logDebug(
 						`the address ${address} current weth balance is ${wEthBalance}, wrapping...`
 					);
-					const amtToWrap = CST.MIN_WETH_BALANCE + 0.1 - wEthBalance;
+					const amtToWrap = CST.MIN_WETH_BALANCE - wEthBalance + 0.1;
 
 					if (ethBalance < amtToWrap)
 						await this.ethTransferRaw(
@@ -158,15 +158,15 @@ export class ContractUtil {
 							await this.web3Util.getTransactionCount(faucetAccount.address)
 						);
 
-					util.logInfo(`start wrapping for ${address} with amt ${amtToWrap}`);
+					util.logDebug(`start wrapping for ${address} with amt ${amtToWrap}`);
 					await this.web3Util.wrapEther(util.round(amtToWrap, 4), address);
 				}
 
 				// wETHallowance
 				const wethAllowance = await this.web3Util.getProxyTokenAllowance(code2, address);
-				util.logInfo(`tokenAllowande of token ${code2} is ${wethAllowance}`);
+				util.logDebug(`tokenAllowande of token ${code2} is ${wethAllowance}`);
 				if (wethAllowance <= 0) {
-					util.logInfo(
+					util.logDebug(
 						`the address ${address} token allowance of ${code2} is 0, approvaing.....`
 					);
 					await this.web3Util.setUnlimitedTokenAllowance(code2, address);
@@ -174,7 +174,7 @@ export class ContractUtil {
 
 				// tokenBalance
 				const tokenBalance = await this.web3Util.getTokenBalance(code1, address);
-				util.logInfo(`the ${code1} tokenBalance of ${address} is ${tokenBalance}`);
+				util.logDebug(`the ${code1} tokenBalance of ${address} is ${tokenBalance}`);
 				const accountsBot: IAccounts[] = require('../keys/accountsBot.json');
 				const account = accountsBot.find(a => a.address === address);
 				const gasPrice = Math.max(
@@ -182,14 +182,14 @@ export class ContractUtil {
 					CST.DEFAULT_GAS_PRICE * Math.pow(10, 9)
 				);
 				if (tokenBalance < CST.MIN_TOKEN_BALANCE) {
-					util.logInfo(
+					util.logDebug(
 						`the address ${address} current token balance of ${code1} is ${tokenBalance}, need create more tokens...`
 					);
 
-					const tokenValues = await this.estimateDualTokenCreateAmt(
+					const tokenAmtToCreate = await this.estimateDualTokenCreateAmt(
 						ethBalance - CST.MIN_ETH_BALANCE - 0.1
 					);
-					if (tokenValues[tokenIndex] + tokenBalance <= CST.MIN_TOKEN_BALANCE)
+					if (tokenAmtToCreate[tokenIndex] + tokenBalance <= CST.MIN_TOKEN_BALANCE)
 						await this.ethTransferRaw(
 							this.web3,
 							faucetAccount.address,
@@ -199,7 +199,7 @@ export class ContractUtil {
 							await this.web3Util.getTransactionCount(faucetAccount.address)
 						);
 
-					util.logInfo(`creating token ${code1}`);
+					util.logDebug(`creating token ${code1}`);
 					if (account)
 						await this.dualClassCustodianWrapper.createRaw(
 							address,
@@ -209,12 +209,12 @@ export class ContractUtil {
 							CST.MIN_ETH_BALANCE
 						);
 					else {
-						util.logInfo(`the address ${address} cannot create, skip...`);
+						util.logDebug(`the address ${address} cannot create, skip...`);
 						addresses = addresses.filter(addr => addr !== address);
 						continue;
 					}
 				} else if (tokenBalance >= CST.MAX_TOKEN_BALANCE) {
-					util.logInfo(
+					util.logDebug(
 						`the address ${address} current token balance of ${code1} is ${tokenBalance}, need redeem back...`
 					);
 					if (account) {
