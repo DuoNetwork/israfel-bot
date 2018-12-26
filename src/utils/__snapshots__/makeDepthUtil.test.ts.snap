@@ -29,7 +29,7 @@ Array [
 ]
 `;
 
-exports[`startMakingOrders have both asks and have bids, expectedMidPrice < bestAskPrice 1`] = `
+exports[`startMakingOrders have both asks and have bids, expectedMidPrice < bestBidPrice 1`] = `
 Array [
   Array [
     "token|WETH",
@@ -45,7 +45,7 @@ Array [
 ]
 `;
 
-exports[`startMakingOrders have both asks and have bids, expectedMidPrice < bestAskPrice 2`] = `
+exports[`startMakingOrders have both asks and have bids, expectedMidPrice < bestBidPrice 2`] = `
 Array [
   Array [
     "token|WETH",
@@ -67,9 +67,7 @@ Array [
     0.012,
     50,
     3,
-    Array [
-      0.0125,
-    ],
+    Array [],
   ],
 ]
 `;
@@ -100,9 +98,7 @@ Array [
     0.012,
     50,
     3,
-    Array [
-      0.011,
-    ],
+    Array [],
   ],
   Array [
     "token|WETH",

@@ -274,7 +274,7 @@ test('startMakingOrders have both asks and have bids, expectedMidPrice > bestAsk
 	expect((orderMakerUtil.createOrderBookSide as jest.Mock).mock.calls).toMatchSnapshot();
 });
 
-test('startMakingOrders have both asks and have bids, expectedMidPrice < bestAskPrice', async () => {
+test('startMakingOrders have both asks and have bids, expectedMidPrice < bestBidPrice', async () => {
 	const orderMakerUtil = {
 		takeOneSideOrders: jest.fn(() => Promise.resolve()),
 		createOrderBookSide: jest.fn(() => Promise.resolve())

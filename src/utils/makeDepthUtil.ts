@@ -274,6 +274,7 @@ export class MakeDepthUtil {
 				totalAskLiquidity = this.getSideTotalLiquidity(
 					this.orderBookSnapshot.asks.filter(ask => ask.price > expectedMidPrice)
 				);
+				existingAskPrices = existingAskPrices.filter(price => price > expectedMidPrice);
 			} else if (expectedMidPrice < bestBidPrice) {
 				await this.orderMakerUtil.takeOneSideOrders(
 					this.pair,
@@ -287,6 +288,7 @@ export class MakeDepthUtil {
 				totalBidLiquidity = this.getSideTotalLiquidity(
 					this.orderBookSnapshot.bids.filter(bid => bid.price < expectedMidPrice)
 				);
+				existingBidPrices = existingBidPrices.filter(price => price < expectedMidPrice);
 			}
 
 			askAmountToCreate = this.getSideAmtToCreate(currentAskLevels, totalAskLiquidity);
