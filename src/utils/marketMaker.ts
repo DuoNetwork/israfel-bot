@@ -323,7 +323,7 @@
 // 		const pair = orderBookSnapshot.pair;
 // 		await this.readLastAcceptedPrice();
 // 		if (!this.orderBookSnapshots[pair]) {
-// 			// bot just start, got the first orderBookSnapshot 
+// 			// bot just start, got the first orderBookSnapshot
 // 			// create orderBookAccording to nav Price
 // 			this.isMakingOrder = true;
 // 			this.orderBookSnapshots[pair] = orderBookSnapshot;
@@ -340,8 +340,6 @@
 // 				this.getSideTotalLiquidity(orderBookSnapshot.bids, 3) < CST.MIN_SIDE_LIQUIDITY)
 // 		) {
 // 			this.isMakingOrder = true;
-
-
 // 			const bestPriceChange: IBestPriceChange = {
 // 				isBidChange: true,
 // 				changeAmount: (orderBookSnapshot.bids[0].price || 0) -
@@ -409,7 +407,6 @@
 // 					);
 // 					this.relayerClient.subscribeOrderHistory(this.makerAddress);
 // 				}
-
 
 // 			}
 // 		});

@@ -1,6 +1,7 @@
 import {  BEETHOVEN, MOZART, TENOR_M19, TENOR_PPT } from '../../../duo-admin/src/common/constants';
 export * from '../../../duo-admin/src/common/constants';
 export {
+	FAUCET_ADDR,
 	WS_UNSUB,
 	DB_ORDERS,
 	WS_INFO,
@@ -76,3 +77,5 @@ export const AVAILABLE_ADDR_IDX: { [key: string]: number[] } = {
 	[MOZART + '|' + TENOR_PPT]: [4, 5],
 	[MOZART + '|' + TENOR_M19]: [6, 7]
 };
+
+export const ALLOWANCE = 'allowance';

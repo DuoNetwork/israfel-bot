@@ -5,10 +5,11 @@ import Web3Wrapper from '../../duo-contract-wrapper/src/Web3Wrapper';
 import Web3Util from '../../israfel-relayer/src/utils/Web3Util';
 import * as CST from './common/constants';
 import { IOption } from './common/types';
-import { ContractUtil } from './utils/contractUtil';
-import { MakeDepthUtil } from './utils/makeDepthUtil';
-import { OrderMakerUtil } from './utils/orderMakerUtil';
+// import { ContractUtil } from './utils/contractUtil';
+// import { MakeDepthUtil } from './utils/makeDepthUtil';
+// import { OrderMakerUtil } from './utils/orderMakerUtil';
 // import osUtil from './utils/osUtil';
+import allowanceUtil from './utils/allowance';
 import util from './utils/util';
 
 const tool = process.argv[2];
@@ -50,18 +51,21 @@ dynamoUtil.init(
 	}
 );
 
-const mnemonic = require('./keys/mnemomic.json');
-const web3Util = new Web3Util(null, option.live, mnemonic.mnemomic, false);
-const contractUtil = new ContractUtil(web3Util, web3Wrapper, option);
-const orderMakerUtil: OrderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
-const makeDepthUtil = new MakeDepthUtil(
-	option,
-	web3Util,
-	orderMakerUtil
-);
+const keys = require('./keys/faucetAccount.json');
+const web3Util = new Web3Util(null, option.live, '', keys.privateKey, false);
+// const contractUtil = new ContractUtil(web3Util, web3Wrapper, option);
+// const orderMakerUtil: OrderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
+// const makeDepthUtil = new MakeDepthUtil(
+// 	option,
+// 	web3Util,
+// 	orderMakerUtil
+// );
 switch (tool) {
-	case CST.MAKE_DEPTH:
-		makeDepthUtil.startMake(contractUtil, option);
+	// case CST.MAKE_DEPTH:
+	// 	makeDepthUtil.startMake(contractUtil, option);
+	// 	break;
+	case CST.ALLOWANCE:
+		allowanceUtil.startApproving(web3Util, option);
 		break;
 	default:
 		util.logInfo('no such tool ' + tool);
