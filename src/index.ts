@@ -1,73 +1,25 @@
 // fix for @ledgerhq/hw-transport-u2f 4.28.0
 import '@babel/polyfill';
-import dynamoUtil from '../../duo-admin/src/utils/dynamoUtil';
-import Web3Wrapper from '../../duo-contract-wrapper/src/Web3Wrapper';
-import Web3Util from '../../israfel-relayer/src/utils/Web3Util';
-import * as CST from './common/constants';
+import { Constants } from '@finbook/israfel-common';
 import { IOption } from './common/types';
-// import { ContractUtil } from './utils/contractUtil';
-// import { MakeDepthUtil } from './utils/makeDepthUtil';
-// import { OrderMakerUtil } from './utils/orderMakerUtil';
-// import osUtil from './utils/osUtil';
-import allowanceUtil from './utils/allowance';
+import marketMaker from './marketMaker/dualMarketMaker';
+import dynamoUtil from './utils/dynamoUtil';
+import osUtil from './utils/osUtil';
+import serverMasterUtil from './utils/serverMasterUtil';
 import util from './utils/util';
 
 const tool = process.argv[2];
-util.logInfo('tool ' + tool);
 const option: IOption = util.parseOptions(process.argv);
+util.logInfo(`tool ${tool} using env ${option.env}`);
+if (option.debug) util.logLevel = Constants.LOG_DEBUG;
 
-if (!option.provider) {
-	const infura = require('./keys/infura.json');
-	option.source = CST.SRC_INFURA;
-	option.provider =
-		(option.live ? CST.PROVIDER_INFURA_MAIN : CST.PROVIDER_INFURA_KOVAN) + '/' + infura.token;
-}
+const config = require(`./keys/dynamo.${option.env}.json`);
+dynamoUtil.init(config, option.env, tool, osUtil.getHostName());
 
-util.logInfo(
-	`using ${option.live ? 'live' : 'dev'}
-	using source ${option.source}
-	using provider ${option.provider}
-	for contractType ${option.type}
-	for tenor ${option.tenor}
-	for token ${option.token}
-	for baseToken ${option.baseToken}
-	`
-);
-
-const web3Wrapper = new Web3Wrapper(null, option.source, option.provider, option.live);
-
-const config = require('./keys/aws/' + (option.live ? 'live' : 'dev') + '/admin.json');
-dynamoUtil.init(
-	config,
-	option.live,
-	util.getStatusProcess(tool, option),
-	(value: string | number) => web3Wrapper.fromWei(value),
-	async txHash => {
-		const txReceipt = await web3Wrapper.getTransactionReceipt(txHash);
-		if (!txReceipt) return null;
-		return {
-			status: txReceipt.status
-		};
-	}
-);
-
-const keys = require('./keys/faucetAccount.json');
-const web3Util = new Web3Util(null, option.live, '', keys.privateKey, false);
-// const contractUtil = new ContractUtil(web3Util, web3Wrapper, option);
-// const orderMakerUtil: OrderMakerUtil = new OrderMakerUtil(web3Util, contractUtil);
-// const makeDepthUtil = new MakeDepthUtil(
-// 	option,
-// 	web3Util,
-// 	orderMakerUtil
-// );
 switch (tool) {
-	// case CST.MAKE_DEPTH:
-	// 	makeDepthUtil.startMake(contractUtil, option);
-	// 	break;
-	case CST.ALLOWANCE:
-		allowanceUtil.startApproving(web3Util, option);
+	case Constants.DB_MKT_MAKER:
+		serverMasterUtil.startLaunching(tool, option, opt => marketMaker.startProcessing(opt));
 		break;
 	default:
-		util.logInfo('no such tool ' + tool);
 		break;
 }

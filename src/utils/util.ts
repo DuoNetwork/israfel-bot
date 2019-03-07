@@ -1,3 +1,4 @@
+import { Constants } from '@finbook/israfel-common';
 import moment, { DurationInputArg2 } from 'moment';
 import WebSocket from 'ws';
 import * as CST from '../common/constants';
@@ -37,48 +38,30 @@ class Util {
 	}
 
 	public defaultOption: IOption = {
-		live: false,
-		token: 'aETH',
+		env: Constants.DB_DEV,
+		tokens: [],
+		token: '',
 		debug: false,
-		provider: '',
-		source: '',
-		type: 'Beethoven',
-		tenor: 'Perpetual',
-		baseToken: 'ETH',
-		env: 'dev'
+		server: false
 	};
-
-	public getUTCNowTimestamp() {
-		return moment().valueOf();
-	}
 
 	public parseOptions(argv: string[]): IOption {
 		const option: IOption = this.defaultOption;
+		option.server = argv.includes('server');
 		option.debug = argv.includes('debug');
-		option.live = argv.includes('live');
 		for (let i = 3; i < argv.length; i++) {
 			const args = argv[i].split('=');
 			switch (args[0]) {
+				case 'env':
+					option.env = [Constants.DB_LIVE, Constants.DB_UAT].includes(args[1])
+						? args[1]
+						: option.env;
+					break;
+				case 'tokens':
+					option.tokens = args[1].split(',');
+					break;
 				case 'token':
 					option.token = args[1] || option.token;
-					break;
-				case 'baseToken':
-					option.baseToken = args[1] || option.baseToken;
-					break;
-				case 'source':
-					option.source = args[1] || option.source;
-					break;
-				case 'provider':
-					option.provider = args[1] || option.provider;
-					break;
-				case 'type':
-					option.type = args[1] || option.type;
-					break;
-				case 'tenor':
-					option.tenor = args[1] || option.tenor;
-					break;
-				case 'env':
-					option.env = args[1] || option.env;
 					break;
 				default:
 					break;
@@ -86,6 +69,10 @@ class Util {
 		}
 
 		return option;
+	}
+
+	public getUTCNowTimestamp() {
+		return moment().valueOf();
 	}
 
 	public round(num: string | number, digit: number) {

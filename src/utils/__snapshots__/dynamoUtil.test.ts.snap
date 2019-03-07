@@ -1,0 +1,1211 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`addOrder 1`] = `
+Array [
+  Array [
+    Object {
+      "TransactItems": Array [
+        Object {
+          "Put": Object {
+            "Item": Object {
+              "account": Object {
+                "S": "0xAccount",
+              },
+              "amount": Object {
+                "N": "456",
+              },
+              "balance": Object {
+                "N": "123",
+              },
+              "createdAt": Object {
+                "N": "1234560000",
+              },
+              "currentSequence": Object {
+                "N": "2",
+              },
+              "expiry": Object {
+                "N": "1234567890",
+              },
+              "fee": Object {
+                "N": "1",
+              },
+              "feeAsset": Object {
+                "S": "feeAsset",
+              },
+              "fill": Object {
+                "N": "234",
+              },
+              "initialSequence": Object {
+                "N": "1",
+              },
+              "matching": Object {
+                "N": "111",
+              },
+              "orderHash": Object {
+                "S": "0xOrderHash",
+              },
+              "pair": Object {
+                "S": "code1|code2",
+              },
+              "price": Object {
+                "N": "0.12345679",
+              },
+              "side": Object {
+                "S": "bid",
+              },
+              "updatedAt": Object {
+                "N": "9876543210",
+              },
+            },
+            "TableName": "israfel.env.liveOrders",
+          },
+        },
+        Object {
+          "Put": Object {
+            "Item": Object {
+              "createdAt": Object {
+                "N": "9876543210",
+              },
+              "exchangeAddress": Object {
+                "S": "exchangeAddress",
+              },
+              "expirationTimeSeconds": Object {
+                "S": "1234567890",
+              },
+              "feeRecipientAddress": Object {
+                "S": "feeRecipientAddress",
+              },
+              "makerAddress": Object {
+                "S": "makerAddress",
+              },
+              "makerAssetAmount": Object {
+                "S": "123",
+              },
+              "makerAssetData": Object {
+                "S": "makerAssetData",
+              },
+              "makerFee": Object {
+                "S": "0",
+              },
+              "orderHash": Object {
+                "S": "0xOrderHash",
+              },
+              "pair": Object {
+                "S": "code1|code2",
+              },
+              "salt": Object {
+                "S": "789",
+              },
+              "senderAddress": Object {
+                "S": "senderAddress",
+              },
+              "signature": Object {
+                "S": "signature",
+              },
+              "takerAddress": Object {
+                "S": "takerAddress",
+              },
+              "takerAssetAmount": Object {
+                "S": "456",
+              },
+              "takerAssetData": Object {
+                "S": "takerAssetData",
+              },
+              "takerFee": Object {
+                "S": "0",
+              },
+              "updatedAt": Object {
+                "N": "9876543210",
+              },
+            },
+            "TableName": "israfel.env.rawOrders",
+          },
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`addTrade 1`] = `
+Array [
+  Array [
+    Object {
+      "Item": Object {
+        "feeAsset": Object {
+          "S": "feeAsset",
+        },
+        "makerAmount": Object {
+          "N": "654",
+        },
+        "makerFee": Object {
+          "N": "321",
+        },
+        "makerOrderHash": Object {
+          "S": "makerOrderHash",
+        },
+        "makerPrice": Object {
+          "N": "987",
+        },
+        "pairDateHour": Object {
+          "S": "code1|code2|1970-01-15-06",
+        },
+        "takerAddress": Object {
+          "S": "takerAddress",
+        },
+        "takerAmount": Object {
+          "N": "456",
+        },
+        "takerFee": Object {
+          "N": "789",
+        },
+        "takerOrderHash": Object {
+          "S": "takerOrderHash",
+        },
+        "takerPrice": Object {
+          "N": "123",
+        },
+        "takerSide": Object {
+          "S": "takerSide",
+        },
+        "timestampTransactionHash": Object {
+          "S": "1234567890|txHash",
+        },
+      },
+      "TableName": "israfel.env.trades",
+    },
+  ],
+]
+`;
+
+exports[`addUserOrder 1`] = `
+Array [
+  Array [
+    Object {
+      "Item": Object {
+        "accountPairDate": Object {
+          "S": "0xAccount|code1|code2|1970-01-15",
+        },
+        "amount": Object {
+          "N": "456",
+        },
+        "balance": Object {
+          "N": "123",
+        },
+        "createdAtSequence": Object {
+          "S": "1234560000|2",
+        },
+        "expiry": Object {
+          "N": "1234567890",
+        },
+        "fee": Object {
+          "N": "1",
+        },
+        "feeAsset": Object {
+          "S": "feeAsset",
+        },
+        "fill": Object {
+          "N": "234",
+        },
+        "initialSequence": Object {
+          "N": "1",
+        },
+        "matching": Object {
+          "N": "111",
+        },
+        "orderHash": Object {
+          "S": "0xOrderHash",
+        },
+        "price": Object {
+          "N": "0.12345679",
+        },
+        "processed": Object {
+          "BOOL": false,
+        },
+        "side": Object {
+          "S": "side",
+        },
+        "status": Object {
+          "S": "status",
+        },
+        "type": Object {
+          "S": "type",
+        },
+        "updatedAt": Object {
+          "N": "1234567890",
+        },
+        "updatedBy": Object {
+          "S": "updatedBy",
+        },
+      },
+      "TableName": "israfel.env.userOrders",
+    },
+  ],
+]
+`;
+
+exports[`addUserOrder with txHash 1`] = `
+Array [
+  Array [
+    Object {
+      "Item": Object {
+        "accountPairDate": Object {
+          "S": "0xAccount|code1|code2|1970-01-15",
+        },
+        "amount": Object {
+          "N": "456",
+        },
+        "balance": Object {
+          "N": "123",
+        },
+        "createdAtSequence": Object {
+          "S": "1234560000|2",
+        },
+        "expiry": Object {
+          "N": "1234567890",
+        },
+        "fee": Object {
+          "N": "1",
+        },
+        "feeAsset": Object {
+          "S": "feeAsset",
+        },
+        "fill": Object {
+          "N": "234",
+        },
+        "initialSequence": Object {
+          "N": "1",
+        },
+        "matching": Object {
+          "N": "111",
+        },
+        "orderHash": Object {
+          "S": "0xOrderHash",
+        },
+        "price": Object {
+          "N": "0.12345679",
+        },
+        "processed": Object {
+          "BOOL": false,
+        },
+        "side": Object {
+          "S": "side",
+        },
+        "status": Object {
+          "S": "status",
+        },
+        "transactionHash": Object {
+          "S": "txHash",
+        },
+        "type": Object {
+          "S": "type",
+        },
+        "updatedAt": Object {
+          "N": "1234567890",
+        },
+        "updatedBy": Object {
+          "S": "updatedBy",
+        },
+      },
+      "TableName": "israfel.env.userOrders",
+    },
+  ],
+]
+`;
+
+exports[`deleteData 1`] = `
+Array [
+  Array [
+    Object {},
+    [Function],
+  ],
+]
+`;
+
+exports[`deleteData error 1`] = `Object {}`;
+
+exports[`deleteData no ddb 1`] = `"dynamo db connection is not initialized"`;
+
+exports[`deleteOrder 1`] = `
+Array [
+  Array [
+    Object {
+      "TransactItems": Array [
+        Object {
+          "Delete": Object {
+            "Key": Object {
+              "orderHash": Object {
+                "S": "0xOrderHash",
+              },
+              "pair": Object {
+                "S": "code1|code2",
+              },
+            },
+            "TableName": "israfel.env.liveOrders",
+          },
+        },
+        Object {
+          "Update": Object {
+            "ExpressionAttributeValues": Object {
+              ":updatedAt": Object {
+                "N": "9876543210",
+              },
+            },
+            "Key": Object {
+              "orderHash": Object {
+                "S": "0xOrderHash",
+              },
+            },
+            "TableName": "israfel.env.rawOrders",
+            "UpdateExpression": "SET updatedAt = :updatedAt REMOVE signature",
+          },
+        },
+      ],
+    },
+  ],
+]
+`;
+
+exports[`getLiveOrders 1`] = `
+Array [
+  Array [
+    Object {
+      "ExpressionAttributeValues": Object {
+        ":pair": Object {
+          "S": "code1|code2",
+        },
+      },
+      "KeyConditionExpression": "pair = :pair",
+      "TableName": "israfel.env.liveOrders",
+    },
+  ],
+]
+`;
+
+exports[`getLiveOrders 2`] = `
+Array [
+  Object {
+    "account": "0xAccount",
+    "amount": 456,
+    "balance": 123,
+    "createdAt": 1234560000,
+    "currentSequence": 2,
+    "expiry": 1234567890,
+    "fee": 1,
+    "feeAsset": "feeAsset",
+    "fill": 234,
+    "initialSequence": 1,
+    "matching": 111,
+    "orderHash": "0xOrderHash",
+    "pair": "code1|code2",
+    "price": 123,
+    "side": "side",
+    "updatedAt": 1234567890,
+  },
+]
+`;
+
+exports[`getLiveOrders with orderHash 1`] = `
+Array [
+  Array [
+    Object {
+      "ExpressionAttributeValues": Object {
+        ":orderHash": Object {
+          "S": "orderHash",
+        },
+        ":pair": Object {
+          "S": "code1|code2",
+        },
+      },
+      "KeyConditionExpression": "pair = :pair AND orderHash = :orderHash",
+      "TableName": "israfel.env.liveOrders",
+    },
+  ],
+]
+`;
+
+exports[`getLiveOrders with orderHash 2`] = `
+Array [
+  Object {
+    "account": "0xAccount",
+    "amount": 456,
+    "balance": 123,
+    "createdAt": 1234560000,
+    "currentSequence": 2,
+    "expiry": 1234567890,
+    "fee": 1,
+    "feeAsset": "feeAsset",
+    "fill": 234,
+    "initialSequence": 1,
+    "matching": 111,
+    "orderHash": "0xOrderHash",
+    "pair": "code1|code2",
+    "price": 123,
+    "side": "side",
+    "updatedAt": 1234567890,
+  },
+]
+`;
+
+exports[`getLiveOrders with orderHash 3`] = `
+Array [
+  Object {
+    "account": "",
+    "amount": 456,
+    "balance": 123,
+    "createdAt": 1234560000,
+    "currentSequence": 2,
+    "expiry": 1234567890,
+    "fee": 1,
+    "feeAsset": "",
+    "fill": 234,
+    "initialSequence": 1,
+    "matching": 111,
+    "orderHash": "",
+    "pair": "",
+    "price": 123,
+    "side": "",
+    "updatedAt": 1234567890,
+  },
+]
+`;
+
+exports[`getLiveOrders with orderHash 4`] = `[Error: multiple record for order hash orderHash]`;
+
+exports[`getRawOrder 1`] = `
+Array [
+  Array [
+    Object {
+      "ExpressionAttributeValues": Object {
+        ":orderHash": Object {
+          "S": "0xOrderHash",
+        },
+      },
+      "KeyConditionExpression": "orderHash = :orderHash",
+      "TableName": "israfel.env.rawOrders",
+    },
+  ],
+]
+`;
+
+exports[`getRawOrder 2`] = `
+Object {
+  "createdAt": 1234567890,
+  "orderHash": "0xOrderHash",
+  "pair": "code1|code2",
+  "signedOrder": Object {
+    "exchangeAddress": "exchangeAddress",
+    "expirationTimeSeconds": "1234567890",
+    "feeRecipientAddress": "feeRecipientAddress",
+    "makerAddress": "makerAddress",
+    "makerAssetAmount": "123",
+    "makerAssetData": "makerAssetData",
+    "makerFee": "0",
+    "salt": "789",
+    "senderAddress": "senderAddress",
+    "signature": "signature",
+    "takerAddress": "takerAddress",
+    "takerAssetAmount": "456",
+    "takerAssetData": "takerAssetData",
+    "takerFee": "0",
+  },
+  "updatedAt": 1234567890,
+}
+`;
+
+exports[`getRawOrder 3`] = `
+Object {
+  "createdAt": 1234567890,
+  "orderHash": "",
+  "pair": "",
+  "signedOrder": Object {
+    "exchangeAddress": "",
+    "expirationTimeSeconds": "0",
+    "feeRecipientAddress": "",
+    "makerAddress": "",
+    "makerAssetAmount": "0",
+    "makerAssetData": "",
+    "makerFee": "0",
+    "salt": "0",
+    "senderAddress": "",
+    "signature": "",
+    "takerAddress": "",
+    "takerAssetAmount": "0",
+    "takerAssetData": "",
+    "takerFee": "0",
+  },
+  "updatedAt": 1234567890,
+}
+`;
+
+exports[`getRawOrder 4`] = `
+Object {
+  "createdAt": 1234567890,
+  "orderHash": "0xOrderHash",
+  "pair": "code1|code2",
+  "signedOrder": Object {
+    "exchangeAddress": "exchangeAddress",
+    "expirationTimeSeconds": "1234567890",
+    "feeRecipientAddress": "feeRecipientAddress",
+    "makerAddress": "makerAddress",
+    "makerAssetAmount": "123",
+    "makerAssetData": "makerAssetData",
+    "makerFee": "0",
+    "salt": "789",
+    "senderAddress": "senderAddress",
+    "signature": "",
+    "takerAddress": "takerAddress",
+    "takerAssetAmount": "456",
+    "takerAssetData": "takerAssetData",
+    "takerFee": "0",
+  },
+  "updatedAt": 1234567890,
+}
+`;
+
+exports[`getRawOrder 5`] = `[Error: multiple record for order hash 0xOrderHash]`;
+
+exports[`getTrades 1`] = `
+Array [
+  Array [
+    "code1|code2",
+    "1970-04-25-05",
+  ],
+  Array [
+    "code1|code2",
+    "1970-04-25-06",
+  ],
+  Array [
+    "code1|code2",
+    "1970-04-25-07",
+  ],
+]
+`;
+
+exports[`getTrades end 1`] = `
+Array [
+  Array [
+    "code1|code2",
+    "1970-04-25-05",
+  ],
+  Array [
+    "code1|code2",
+    "1970-04-25-06",
+  ],
+  Array [
+    "code1|code2",
+    "1970-04-25-07",
+  ],
+]
+`;
+
+exports[`getTradesForHour 1`] = `
+Array [
+  Object {
+    "feeAsset": "feeAsset",
+    "maker": Object {
+      "amount": 654,
+      "fee": 321,
+      "orderHash": "makerOrderHash",
+      "price": 987,
+    },
+    "pair": "code1|code2",
+    "taker": Object {
+      "address": "takerAddress",
+      "amount": 456,
+      "fee": 789,
+      "orderHash": "takerOrderHash",
+      "price": 123,
+      "side": "takerSide",
+    },
+    "timestamp": 1234567890,
+    "transactionHash": "txHash",
+  },
+  Object {
+    "feeAsset": "",
+    "maker": Object {
+      "amount": 654,
+      "fee": 321,
+      "orderHash": "",
+      "price": 987,
+    },
+    "pair": "|undefined",
+    "taker": Object {
+      "address": "",
+      "amount": 456,
+      "fee": 789,
+      "orderHash": "",
+      "price": 123,
+      "side": "",
+    },
+    "timestamp": 0,
+    "transactionHash": undefined,
+  },
+]
+`;
+
+exports[`getTradesForHour 2`] = `
+Array [
+  Array [
+    Object {
+      "ExpressionAttributeValues": Object {
+        ":pairDateHour": Object {
+          "S": "code1|code2|1234-56-78-90",
+        },
+      },
+      "KeyConditionExpression": "pairDateHour = :pairDateHour",
+      "TableName": "israfel.env.trades",
+    },
+  ],
+]
+`;
+
+exports[`getUserOrders 1`] = `
+Array [
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-15",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-16",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-17",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-18",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-19",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-20",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-21",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-22",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-23",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-24",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-25",
+  ],
+]
+`;
+
+exports[`getUserOrders end pair 1`] = `
+Array [
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-15",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-16",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-17",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-18",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-19",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-20",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-21",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-22",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-23",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-24",
+  ],
+  Array [
+    "0xAccount",
+    "code1|code2",
+    "1970-04-25",
+  ],
+]
+`;
+
+exports[`getUserOrdersForPairDate 1`] = `
+Array [
+  Object {
+    "account": "0xAccount",
+    "amount": 456,
+    "balance": 123,
+    "createdAt": 1234560000,
+    "currentSequence": 1,
+    "expiry": 1234567890,
+    "fee": 1,
+    "feeAsset": "feeAsset",
+    "fill": 234,
+    "initialSequence": 1,
+    "matching": 111,
+    "orderHash": "0xOrderHash",
+    "pair": "code1|code2",
+    "price": 123,
+    "processed": true,
+    "side": "side",
+    "status": "status",
+    "type": "type",
+    "updatedAt": 1234567890,
+    "updatedBy": "updatedBy",
+  },
+  Object {
+    "account": "0xAccount",
+    "amount": 456,
+    "balance": 123,
+    "createdAt": 1234560000,
+    "currentSequence": 1,
+    "expiry": 1234567890,
+    "fee": 1,
+    "feeAsset": "feeAsset",
+    "fill": 234,
+    "initialSequence": 1,
+    "matching": 111,
+    "orderHash": "0xOrderHash",
+    "pair": "code1|code2",
+    "price": 123,
+    "processed": true,
+    "side": "side",
+    "status": "status",
+    "transactionHash": "txHash",
+    "type": "type",
+    "updatedAt": 1234567890,
+    "updatedBy": "updatedBy",
+  },
+  Object {
+    "account": "",
+    "amount": 456,
+    "balance": 123,
+    "createdAt": 0,
+    "currentSequence": NaN,
+    "expiry": 1234567890,
+    "fee": 1,
+    "feeAsset": "",
+    "fill": 234,
+    "initialSequence": 1,
+    "matching": 111,
+    "orderHash": "",
+    "pair": "undefined|undefined",
+    "price": 123,
+    "processed": true,
+    "side": "",
+    "status": "",
+    "transactionHash": undefined,
+    "type": "",
+    "updatedAt": 1234567890,
+    "updatedBy": "",
+  },
+]
+`;
+
+exports[`getUserOrdersForPairDate 2`] = `
+Array [
+  Array [
+    Object {
+      "ExpressionAttributeValues": Object {
+        ":accountPairDate": Object {
+          "S": "0xAccount|code1|code2|1234-56-78",
+        },
+      },
+      "KeyConditionExpression": "accountPairDate = :accountPairDate",
+      "TableName": "israfel.env.userOrders",
+    },
+  ],
+]
+`;
+
+exports[`init 1`] = `
+Array [
+  Array [
+    Object {
+      "apiVersion": "2012-10-08",
+    },
+  ],
+  Array [
+    Object {
+      "apiVersion": "2012-10-08",
+    },
+  ],
+]
+`;
+
+exports[`init 2`] = `
+Array [
+  Array [
+    "config",
+  ],
+  Array [
+    "config",
+  ],
+]
+`;
+
+exports[`putData 1`] = `
+Array [
+  Array [
+    Object {},
+    [Function],
+  ],
+]
+`;
+
+exports[`putData error 1`] = `Object {}`;
+
+exports[`putData no ddb 1`] = `"dynamo db connection is not initialized"`;
+
+exports[`queryData 1`] = `
+Array [
+  Array [
+    Object {},
+    [Function],
+  ],
+]
+`;
+
+exports[`queryData error 1`] = `Object {}`;
+
+exports[`queryData no ddb 1`] = `"dynamo db connection is not initialized"`;
+
+exports[`scanData 1`] = `
+Array [
+  Array [
+    Object {},
+    [Function],
+  ],
+]
+`;
+
+exports[`scanData error 1`] = `Object {}`;
+
+exports[`scanData no ddb 1`] = `"dynamo db connection is not initialized"`;
+
+exports[`scanIpList 1`] = `
+Array [
+  Array [
+    Object {
+      "TableName": "israfel.env.ipList",
+    },
+  ],
+]
+`;
+
+exports[`scanIpList 2`] = `
+Object {
+  "ip1": "white",
+  "ip2": "black",
+}
+`;
+
+exports[`scanStatus 1`] = `
+Array [
+  Array [
+    Object {
+      "TableName": "israfel.env.status",
+    },
+  ],
+]
+`;
+
+exports[`scanStatus 2`] = `
+Array [
+  Object {
+    "count": 123,
+    "hostname": "hostname",
+    "pair": "code1|code2",
+    "tool": "tool",
+    "updatedAt": 1234567890,
+  },
+  Object {
+    "hostname": "hostname",
+    "pair": "tool",
+    "tool": "tool",
+    "updatedAt": 1234567890,
+  },
+  Object {
+    "hostname": "",
+    "pair": undefined,
+    "tool": "",
+    "updatedAt": 1234567890,
+  },
+]
+`;
+
+exports[`scanTokens 1`] = `
+Array [
+  Array [
+    Object {
+      "TableName": "israfel.env.tokens",
+    },
+  ],
+]
+`;
+
+exports[`scanTokens 2`] = `
+Array [
+  Object {
+    "address": "addr1",
+    "code": "code1",
+    "custodian": "custodian1",
+    "denomination": 1,
+    "feeSchedules": Object {
+      "WETH": Object {
+        "minimum": 1,
+        "rate": 0,
+      },
+    },
+    "precisions": Object {
+      "WETH": 0.000005,
+    },
+  },
+  Object {
+    "address": "addr2",
+    "code": "code2",
+    "custodian": "custodian2",
+    "denomination": 10,
+    "feeSchedules": Object {
+      "WETH": Object {
+        "asset": "asset",
+        "minimum": 1,
+        "rate": 0,
+      },
+    },
+    "maturity": 1234567890,
+    "precisions": Object {
+      "WETH": 0.000005,
+    },
+  },
+  Object {
+    "address": "addr3",
+    "code": "code3",
+    "custodian": "custodian3",
+    "denomination": 10,
+    "feeSchedules": Object {
+      "WETH": Object {
+        "asset": "",
+        "minimum": 1,
+        "rate": 0,
+      },
+    },
+    "maturity": 1234567890,
+    "precisions": Object {
+      "WETH": 0.000005,
+    },
+  },
+  Object {
+    "address": "addr4",
+    "code": "code4",
+    "custodian": "custodian4",
+    "denomination": 10,
+    "feeSchedules": Object {},
+    "maturity": 1234567890,
+    "precisions": Object {
+      "WETH": 0.000005,
+    },
+  },
+  Object {
+    "address": "",
+    "code": "",
+    "custodian": "",
+    "denomination": 10,
+    "feeSchedules": Object {},
+    "maturity": 1234567890,
+    "precisions": Object {},
+  },
+]
+`;
+
+exports[`transactPutData 1`] = `
+Array [
+  Array [
+    Object {},
+    [Function],
+  ],
+]
+`;
+
+exports[`transactPutData error 1`] = `Object {}`;
+
+exports[`transactPutData no ddb 1`] = `"dynamo db connection is not initialized"`;
+
+exports[`updateData 1`] = `
+Array [
+  Array [
+    Object {},
+    [Function],
+  ],
+]
+`;
+
+exports[`updateData error 1`] = `Object {}`;
+
+exports[`updateData no ddb 1`] = `"dynamo db connection is not initialized"`;
+
+exports[`updateIpList 1`] = `
+Array [
+  Array [
+    Object {
+      "Item": Object {
+        "color": Object {
+          "S": "color",
+        },
+        "ip": Object {
+          "S": "ip",
+        },
+      },
+      "TableName": "israfel.env.ipList",
+    },
+  ],
+]
+`;
+
+exports[`updateLiveOrder 1`] = `
+Array [
+  Array [
+    Object {
+      "ExpressionAttributeValues": Object {
+        ":balance": Object {
+          "N": "123",
+        },
+        ":currentSequence": Object {
+          "N": "2",
+        },
+        ":fill": Object {
+          "N": "234",
+        },
+        ":matching": Object {
+          "N": "111",
+        },
+        ":updatedAt": Object {
+          "N": "1234567890",
+        },
+      },
+      "Key": Object {
+        "orderHash": Object {
+          "S": "0xOrderHash",
+        },
+        "pair": Object {
+          "S": "code1|code2",
+        },
+      },
+      "TableName": "israfel.env.liveOrders",
+      "UpdateExpression": "SET balance = :balance, matching = :matching, fill = :fill, updatedAt = :updatedAt, currentSequence = :currentSequence ",
+    },
+  ],
+]
+`;
+
+exports[`updateStatus 1`] = `
+Array [
+  Array [
+    Object {
+      "Item": Object {
+        "hostname": Object {
+          "S": "hostname",
+        },
+        "process": Object {
+          "S": "tool|someProcess|hostname",
+        },
+        "updatedAt": Object {
+          "N": "1234567890",
+        },
+      },
+      "TableName": "israfel.env.status",
+    },
+  ],
+  Array [
+    Object {
+      "Item": Object {
+        "count": Object {
+          "N": "123",
+        },
+        "hostname": Object {
+          "S": "hostname",
+        },
+        "process": Object {
+          "S": "tool|someProcess|hostname",
+        },
+        "updatedAt": Object {
+          "N": "1234567890",
+        },
+      },
+      "TableName": "israfel.env.status",
+    },
+  ],
+]
+`;
+
+exports[`updateStatus failed 1`] = `
+Array [
+  Array [
+    Object {
+      "Item": Object {
+        "hostname": Object {
+          "S": "hostname",
+        },
+        "process": Object {
+          "S": "tool|someProcess|hostname",
+        },
+        "updatedAt": Object {
+          "N": "1234567890",
+        },
+      },
+      "TableName": "israfel.env.status",
+    },
+  ],
+]
+`;

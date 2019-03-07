@@ -1,26 +1,24 @@
-import {  BEETHOVEN, MOZART, TENOR_M19, TENOR_PPT } from '../../../duo-admin/src/common/constants';
-export * from '../../../duo-admin/src/common/constants';
-export {
-	FAUCET_ADDR,
-	WS_UNSUB,
-	DB_ORDERS,
-	WS_INFO,
-	DB_ORDER_BOOKS,
-	WS_OK,
-	DB_SNAPSHOT,
-	WS_SUB,
-	RELAYER_ADDR_KOVAN,
-	RELAYER_ADDR_MAIN,
-	DB_ADD,
-	TOKEN_WETH,
-	ONE_MINUTE_MS
-} from '../../../israfel-relayer/src/common/constants';
-export {
-	BEETHOVEN,
-	MOZART,
-	TENOR_PPT,
-	TENOR_M19
-} from '../../../duo-contract-wrapper/src/constants';
+export const AWS_DYNAMO_API_VERSION = '2012-10-08';
+export const TAKER_ETH_DEPOSIT = 10; // for development only
+export const ONE_SECOND_MS = 1000;
+export const ONE_MINUTE_MS = ONE_SECOND_MS * 60;
+export const TEN_MINUTES_MS = ONE_MINUTE_MS * 10;
+export const PENDING_HOURS = 24;
+export const PRUNE_INTERVAL = 3600000;
+export const ORDER_PRUNE = 'pruneOrder';
+export const SET_ALLOWANCE = 'setAllowance';
+export const START_RELAYER = 'startRelayer';
+export const PRICE_PRECISION = 8;
+export const MIN_ORDER_BOOK_LEVELS = 4;
+export const MIN_SIDE_LIQUIDITY = 50;
+export const MIN_ETH_BALANCE = 3;
+export const MIN_WETH_BALANCE = 2;
+export const TARGET_WETH_BALANCE = 6;
+export const MAX_WETH_BALANCE = 8;
+export const MIN_TOKEN_BALANCE = 100;
+export const TARGET_TOKEN_BALANCE = 300;
+export const MAX_TOKEN_BALANCE = 400;
+export const FAUCET_ADDR = '0x00D8d0660b243452fC2f996A892D3083A903576F';
 
 export const LOG_INFO = 'INFO';
 export const LOG_DEBUG = 'DEBUG';
@@ -48,14 +46,6 @@ export const SRC = [
 	API_GDAX
 ];
 
-export const MIN_ORDER_BOOK_LEVELS = 3;
-export const MIN_SIDE_LIQUIDITY = 50;
-
-export const MIN_ETH_BALANCE = 3;
-export const MIN_WETH_BALANCE = 3;
-export const MIN_TOKEN_BALANCE = 150;
-export const MAX_TOKEN_BALANCE = 400;
-
 export const PRICE_STEP = 0.0005;
 export const PRICE_ROUND = 4;
 export const PRICE_LEVEL = 5;
@@ -69,13 +59,6 @@ export const DB_PRICES_PRIMARY_KEY_RESOLUTION: {
 	60: 'day',
 	360: 'month',
 	1440: 'month'
-};
-
-export const AVAILABLE_ADDR_IDX: { [key: string]: number[] } = {
-	[BEETHOVEN + '|' + TENOR_PPT]: [0, 1],
-	[BEETHOVEN + '|' + TENOR_M19]: [2, 3],
-	[MOZART + '|' + TENOR_PPT]: [4, 5],
-	[MOZART + '|' + TENOR_M19]: [6, 7]
 };
 
 export const ALLOWANCE = 'allowance';

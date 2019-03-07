@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "..\\duo-contract-wrapper"
+		},
+		{
+			"path": "..\\israfel-common"
 		}
 	],
 	"settings": {

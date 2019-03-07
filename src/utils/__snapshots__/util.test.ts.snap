@@ -11,15 +11,11 @@ Array [
 
 exports[`parseOptions 1`] = `
 Object {
-  "baseToken": "ETH",
   "debug": true,
   "env": "dev",
-  "live": true,
-  "provider": "",
-  "source": "",
-  "tenor": "Perpetual",
+  "server": true,
   "token": "token",
-  "type": "Beethoven",
+  "tokens": Array [],
 }
 `;
 

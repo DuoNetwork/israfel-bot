@@ -1,31 +1,20 @@
 export * from '../../../duo-admin/src/common/types';
 export * from '../../../duo-contract-wrapper/src/types';
-export {
-	IWsResponse,
-	IWsOrderBookResponse,
-	IWsOrderResponse,
-	IWsRequest,
-	IWsInfoResponse,
-	IOrderBookSnapshot,
-	IToken,
-	IWsAddOrderRequest,
-	IOrderBookSnapshotUpdate,
-	IWsOrderBookUpdateResponse,
-	IOrderBookSnapshotLevel,
-	IWsOrderHistoryRequest,
-	IStringSignedOrder
-} from '../../../israfel-relayer/src/common/types';
+import { ChildProcess } from 'child_process';
 
 export interface IOption {
-	live: boolean;
-	token: string;
-	baseToken: string;
-	type: string;
-	tenor: string;
-	source: string;
-	provider: string;
-	debug: boolean;
 	env: string;
+	tokens: string[];
+	token: string;
+	debug: boolean;
+	server: boolean;
+}
+
+export interface ISubProcess {
+	token: string;
+	instance: ChildProcess;
+	lastFailTimestamp: number;
+	failCount: number;
 }
 
 export interface IBaseMarketData {
