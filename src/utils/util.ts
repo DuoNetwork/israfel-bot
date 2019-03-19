@@ -41,6 +41,7 @@ class Util {
 		env: Constants.DB_DEV,
 		tokens: [],
 		token: '',
+		contractType: 'Beethoven',
 		debug: false,
 		server: false
 	};
@@ -62,6 +63,9 @@ class Util {
 					break;
 				case 'token':
 					option.token = args[1] || option.token;
+					break;
+				case 'contractType':
+					option.contractType = args[1] || option.contractType;
 					break;
 				default:
 					break;
@@ -162,7 +166,6 @@ class Util {
 			return todayExpiry;
 		}
 	}
-
 }
 
 const util = new Util();

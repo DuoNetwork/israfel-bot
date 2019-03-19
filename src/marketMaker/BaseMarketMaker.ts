@@ -2,6 +2,7 @@ import {
 	Constants as WrapperConstants,
 	DualClassWrapper,
 	IDualClassStates,
+	VivaldiWrapper,
 	Web3Wrapper
 } from '@finbook/duo-contract-wrapper';
 import { Constants as DataConstants, IPrice } from '@finbook/duo-market-data';
@@ -19,6 +20,7 @@ import {
 } from '@finbook/israfel-common';
 import * as CST from '../common/constants';
 import { IOption } from '../common/types';
+import util from '../utils/util';
 
 export default class BaseMarketMaker {
 	public tokens: IToken[] = [];
@@ -53,7 +55,7 @@ export default class BaseMarketMaker {
 			: 0;
 	}
 
-	public async checkAllowance(web3Util: Web3Util, dualClassWrapper: DualClassWrapper) {
+	public async checkAllowance(web3Util: Web3Util, duoWrapper: DualClassWrapper | VivaldiWrapper) {
 		Util.logDebug('start to check allowance');
 		const address = this.makerAccount.address;
 		for (const code of [Constants.TOKEN_WETH, this.tokens[0].code, this.tokens[1].code])
@@ -63,7 +65,7 @@ export default class BaseMarketMaker {
 				await web3Util.awaitTransactionSuccessAsync(txHash);
 			}
 
-		const custodianAddress = dualClassWrapper.address;
+		const custodianAddress = duoWrapper.address;
 		if (!(await web3Util.getTokenAllowance(Constants.TOKEN_WETH, address, custodianAddress))) {
 			Util.logDebug(`${address} for custodian allowance is 0, approving`);
 			const txHash = await web3Util.setUnlimitedTokenAllowance(
@@ -76,128 +78,14 @@ export default class BaseMarketMaker {
 		Util.logDebug('completed checking allowance');
 	}
 
-	public async maintainBalance(web3Util: Web3Util, dualClassWrapper: DualClassWrapper) {
-		if (this.isMaintainingBalance) return;
-
-		this.isMaintainingBalance = true;
-		this.custodianStates = await dualClassWrapper.getStates();
-		const { alpha, createCommRate, redeemCommRate } = this.custodianStates;
-		let impliedWethBalance = this.tokenBalances[0];
-		let wethShortfall = 0;
-		let wethSurplus = 0;
-		const tokensPerEth = DualClassWrapper.getTokensPerEth(this.custodianStates);
-		let bTokenToCreate = 0;
-		let bTokenToRedeem = 0;
-		let ethAmountForCreation = 0;
-		let ethAmountForRedemption = 0;
-		if (
-			this.tokenBalances[2] <= CST.MIN_TOKEN_BALANCE ||
-			this.tokenBalances[1] <= CST.MIN_TOKEN_BALANCE * alpha
-		) {
-			const bTokenShortfall = Math.max(0, CST.TARGET_TOKEN_BALANCE - this.tokenBalances[2]);
-			const aTokenShortfall = Math.max(
-				0,
-				CST.TARGET_TOKEN_BALANCE * alpha - this.tokenBalances[1]
-			);
-			bTokenToCreate = Math.max(aTokenShortfall / alpha, bTokenShortfall);
-			ethAmountForCreation = bTokenToCreate / tokensPerEth[1] / (1 - createCommRate);
-			impliedWethBalance -= ethAmountForCreation;
-		}
-
-		if (
-			this.tokenBalances[2] >= CST.MAX_TOKEN_BALANCE &&
-			this.tokenBalances[1] >= CST.MAX_TOKEN_BALANCE * alpha
-		) {
-			const bTokenSurplus = Math.max(0, this.tokenBalances[2] - CST.TARGET_TOKEN_BALANCE);
-			const aTokenSurplus = Math.max(
-				0,
-				this.tokenBalances[1] - CST.TARGET_TOKEN_BALANCE * alpha
-			);
-			bTokenToRedeem = Math.min(aTokenSurplus / alpha, bTokenSurplus);
-			ethAmountForRedemption = Util.round(
-				(bTokenToRedeem / tokensPerEth[1]) * (1 - redeemCommRate)
-			);
-			impliedWethBalance += ethAmountForRedemption;
-		}
-
-		if (impliedWethBalance > CST.MAX_WETH_BALANCE)
-			wethSurplus = impliedWethBalance - CST.TARGET_WETH_BALANCE;
-		else if (impliedWethBalance < CST.MIN_WETH_BALANCE)
-			wethShortfall = CST.TARGET_WETH_BALANCE - impliedWethBalance;
-
-		const gasPrice = Math.max(
-			await web3Util.getGasPrice(),
-			WrapperConstants.DEFAULT_GAS_PRICE * Math.pow(10, 9)
+	public async maintainBalance(
+		web3Util: Web3Util,
+		duoWrapper: DualClassWrapper | VivaldiWrapper
+	) {
+		util.logDebug(
+			`obj address web3: ${web3Util.valueOf()} duoWrapper: ${duoWrapper.valueOf()}`
 		);
-
-		if (wethShortfall) {
-			Util.logDebug(`transfer WETH shortfall of ${wethShortfall} from faucet`);
-			const tx = await web3Util.tokenTransfer(
-				Constants.TOKEN_WETH,
-				CST.FAUCET_ADDR,
-				this.makerAccount.address,
-				this.makerAccount.address,
-				Util.round(wethShortfall)
-			);
-			Util.logDebug(`tx hash: ${tx}`);
-			await web3Util.awaitTransactionSuccessAsync(tx);
-			this.tokenBalances[0] += wethShortfall;
-		}
-
-		if (bTokenToCreate) {
-			Util.logDebug(`create tokens from ${ethAmountForCreation} WETH`);
-			const tx = await dualClassWrapper.create(
-				this.makerAccount.address,
-				Util.round(ethAmountForCreation),
-				web3Util.contractAddresses.etherToken,
-				{
-					gasPrice: gasPrice,
-					gasLimit: WrapperConstants.DUAL_CLASS_CREATE_GAS
-				}
-			);
-			Util.logDebug(`tx hash: ${tx}`);
-			await web3Util.awaitTransactionSuccessAsync(tx);
-			this.tokenBalances[2] += bTokenToCreate;
-			this.tokenBalances[1] += bTokenToCreate * alpha;
-			this.tokenBalances[0] -= ethAmountForCreation;
-		}
-
-		if (bTokenToRedeem) {
-			Util.logDebug(`redeem ${ethAmountForRedemption} WETH from tokens`);
-			let tx = await dualClassWrapper.redeem(
-				this.makerAccount.address,
-				Util.round(bTokenToRedeem) * alpha,
-				Util.round(bTokenToRedeem),
-				{
-					gasPrice: gasPrice,
-					gasLimit: WrapperConstants.DUAL_CLASS_REDEEM_GAS
-				}
-			);
-			Util.logDebug(`tx hash: ${tx}`);
-			await web3Util.awaitTransactionSuccessAsync(tx);
-			this.tokenBalances[2] -= bTokenToRedeem;
-			this.tokenBalances[1] -= bTokenToRedeem * alpha;
-			Util.logDebug(`wrapping ether with amt ${ethAmountForRedemption}`);
-			tx = await web3Util.wrapEther(ethAmountForRedemption, this.makerAccount.address);
-			Util.logDebug(`tx hash: ${tx}`);
-			await web3Util.awaitTransactionSuccessAsync(tx);
-			this.tokenBalances[0] += ethAmountForRedemption;
-		}
-
-		if (wethSurplus) {
-			Util.logDebug(`transfer WETH surplus of ${wethSurplus} to faucet`);
-			const tx = await web3Util.tokenTransfer(
-				Constants.TOKEN_WETH,
-				this.makerAccount.address,
-				CST.FAUCET_ADDR,
-				this.makerAccount.address,
-				Util.round(wethSurplus)
-			);
-			Util.logDebug(`tx hash: ${tx}`);
-			await web3Util.awaitTransactionSuccessAsync(tx);
-			this.tokenBalances[0] -= wethSurplus;
-		}
-		this.isMaintainingBalance = false;
+		throw new Error('not implemented method');
 	}
 
 	public canMakeOrder(relayerClient: RelayerClient, pair: string) {
@@ -299,11 +187,23 @@ export default class BaseMarketMaker {
 		// TODO: handle add and terminate error
 	}
 
-	public getDualWrapper(infuraProvider: string, aToken: IToken, live: boolean) {
-		const dualClassWrapper = new DualClassWrapper(
-			new Web3Wrapper(null, infuraProvider, this.makerAccount.privateKey, live),
-			aToken.custodian
+	public getDualWrapper(
+		contractType: string,
+		infuraProvider: string,
+		aToken: IToken,
+		live: boolean
+	) {
+		const web3Wrapper = new Web3Wrapper(
+			null,
+			infuraProvider,
+			this.makerAccount.privateKey,
+			live
 		);
+
+		const dualClassWrapper =
+			contractType === WrapperConstants.VIVALDI
+				? new VivaldiWrapper(web3Wrapper, aToken.custodian)
+				: new DualClassWrapper(web3Wrapper, aToken.custodian);
 		return dualClassWrapper;
 	}
 
@@ -333,7 +233,7 @@ export default class BaseMarketMaker {
 			(live ? Constants.PROVIDER_INFURA_MAIN : Constants.PROVIDER_INFURA_KOVAN) +
 			'/' +
 			infura.token;
-		const dualClassWrapper = this.getDualWrapper(infuraProvider, aToken, live);
+		const dualWrapper = this.getDualWrapper(option.contractType, infuraProvider, aToken, live);
 		const address = this.makerAccount.address;
 		Util.logDebug(`updating balance for maker address ${address}`);
 		this.tokenBalances = [
@@ -342,9 +242,9 @@ export default class BaseMarketMaker {
 			await relayerClient.web3Util.getTokenBalance(this.tokens[1].code, address)
 		];
 		Util.logDebug('token balances: ' + JSON.stringify(this.tokenBalances));
-		await this.checkAllowance(relayerClient.web3Util, dualClassWrapper);
-		await this.maintainBalance(relayerClient.web3Util, dualClassWrapper);
+		await this.checkAllowance(relayerClient.web3Util, dualWrapper);
+		await this.maintainBalance(relayerClient.web3Util, dualWrapper as DualClassWrapper);
 		relayerClient.subscribeOrderHistory(this.makerAccount.address);
-		return dualClassWrapper;
+		return dualWrapper;
 	}
 }

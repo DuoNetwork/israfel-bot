@@ -1,5 +1,5 @@
 import {
-	// Constants as WrapperConstants,
+	Constants as WrapperConstants,
 	DualClassWrapper,
 	IDualClassStates
 	// Web3Wrapper
@@ -37,6 +37,131 @@ class DualMarketMaker extends BaseMarketMaker {
 	public isMaintainingBalance = false;
 	public isMakingOrders = false;
 	public lastMid: number[] = [0, 0];
+
+	// @override
+	public async maintainBalance(web3Util: Web3Util, dualClassWrapper: DualClassWrapper) {
+		if (this.isMaintainingBalance) return;
+
+		this.isMaintainingBalance = true;
+		this.custodianStates = await dualClassWrapper.getStates();
+		const { alpha, createCommRate, redeemCommRate } = this.custodianStates;
+		let impliedWethBalance = this.tokenBalances[0];
+		let wethShortfall = 0;
+		let wethSurplus = 0;
+		const tokensPerEth = DualClassWrapper.getTokensPerEth(this.custodianStates);
+		let bTokenToCreate = 0;
+		let bTokenToRedeem = 0;
+		let ethAmountForCreation = 0;
+		let ethAmountForRedemption = 0;
+		if (
+			this.tokenBalances[2] <= CST.MIN_TOKEN_BALANCE ||
+			this.tokenBalances[1] <= CST.MIN_TOKEN_BALANCE * alpha
+		) {
+			const bTokenShortfall = Math.max(0, CST.TARGET_TOKEN_BALANCE - this.tokenBalances[2]);
+			const aTokenShortfall = Math.max(
+				0,
+				CST.TARGET_TOKEN_BALANCE * alpha - this.tokenBalances[1]
+			);
+			bTokenToCreate = Math.max(aTokenShortfall / alpha, bTokenShortfall);
+			ethAmountForCreation = bTokenToCreate / tokensPerEth[1] / (1 - createCommRate);
+			impliedWethBalance -= ethAmountForCreation;
+		}
+
+		if (
+			this.tokenBalances[2] >= CST.MAX_TOKEN_BALANCE &&
+			this.tokenBalances[1] >= CST.MAX_TOKEN_BALANCE * alpha
+		) {
+			const bTokenSurplus = Math.max(0, this.tokenBalances[2] - CST.TARGET_TOKEN_BALANCE);
+			const aTokenSurplus = Math.max(
+				0,
+				this.tokenBalances[1] - CST.TARGET_TOKEN_BALANCE * alpha
+			);
+			bTokenToRedeem = Math.min(aTokenSurplus / alpha, bTokenSurplus);
+			ethAmountForRedemption = Util.round(
+				(bTokenToRedeem / tokensPerEth[1]) * (1 - redeemCommRate)
+			);
+			impliedWethBalance += ethAmountForRedemption;
+		}
+
+		if (impliedWethBalance > CST.MAX_WETH_BALANCE)
+			wethSurplus = impliedWethBalance - CST.TARGET_WETH_BALANCE;
+		else if (impliedWethBalance < CST.MIN_WETH_BALANCE)
+			wethShortfall = CST.TARGET_WETH_BALANCE - impliedWethBalance;
+
+		const gasPrice = Math.max(
+			await web3Util.getGasPrice(),
+			WrapperConstants.DEFAULT_GAS_PRICE * Math.pow(10, 9)
+		);
+
+		if (wethShortfall) {
+			Util.logDebug(`transfer WETH shortfall of ${wethShortfall} from faucet`);
+			const tx = await web3Util.tokenTransfer(
+				Constants.TOKEN_WETH,
+				CST.FAUCET_ADDR,
+				this.makerAccount.address,
+				this.makerAccount.address,
+				Util.round(wethShortfall)
+			);
+			Util.logDebug(`tx hash: ${tx}`);
+			await web3Util.awaitTransactionSuccessAsync(tx);
+			this.tokenBalances[0] += wethShortfall;
+		}
+
+		if (bTokenToCreate) {
+			Util.logDebug(`create tokens from ${ethAmountForCreation} WETH`);
+			const tx = await dualClassWrapper.create(
+				this.makerAccount.address,
+				Util.round(ethAmountForCreation),
+				web3Util.contractAddresses.etherToken,
+				{
+					gasPrice: gasPrice,
+					gasLimit: WrapperConstants.DUAL_CLASS_CREATE_GAS
+				}
+			);
+			Util.logDebug(`tx hash: ${tx}`);
+			await web3Util.awaitTransactionSuccessAsync(tx);
+			this.tokenBalances[2] += bTokenToCreate;
+			this.tokenBalances[1] += bTokenToCreate * alpha;
+			this.tokenBalances[0] -= ethAmountForCreation;
+		}
+
+		if (bTokenToRedeem) {
+			Util.logDebug(`redeem ${ethAmountForRedemption} WETH from tokens`);
+			let tx = await dualClassWrapper.redeem(
+				this.makerAccount.address,
+				Util.round(bTokenToRedeem) * alpha,
+				Util.round(bTokenToRedeem),
+				{
+					gasPrice: gasPrice,
+					gasLimit: WrapperConstants.DUAL_CLASS_REDEEM_GAS
+				}
+			);
+			Util.logDebug(`tx hash: ${tx}`);
+			await web3Util.awaitTransactionSuccessAsync(tx);
+			this.tokenBalances[2] -= bTokenToRedeem;
+			this.tokenBalances[1] -= bTokenToRedeem * alpha;
+			Util.logDebug(`wrapping ether with amt ${ethAmountForRedemption}`);
+			tx = await web3Util.wrapEther(ethAmountForRedemption, this.makerAccount.address);
+			Util.logDebug(`tx hash: ${tx}`);
+			await web3Util.awaitTransactionSuccessAsync(tx);
+			this.tokenBalances[0] += ethAmountForRedemption;
+		}
+
+		if (wethSurplus) {
+			Util.logDebug(`transfer WETH surplus of ${wethSurplus} to faucet`);
+			const tx = await web3Util.tokenTransfer(
+				Constants.TOKEN_WETH,
+				this.makerAccount.address,
+				CST.FAUCET_ADDR,
+				this.makerAccount.address,
+				Util.round(wethSurplus)
+			);
+			Util.logDebug(`tx hash: ${tx}`);
+			await web3Util.awaitTransactionSuccessAsync(tx);
+			this.tokenBalances[0] -= wethSurplus;
+		}
+		this.isMaintainingBalance = false;
+	}
 
 	public async makeOrders(
 		relayerClient: RelayerClient,
@@ -335,7 +460,10 @@ class DualMarketMaker extends BaseMarketMaker {
 				this.exchangePrices = exchangePrices;
 			if (!this.isInitialized) {
 				this.isInitialized = true;
-				dualClassWrapper = await this.initialize(relayerClient, option);
+				dualClassWrapper = (await this.initialize(
+					relayerClient,
+					option
+				)) as DualClassWrapper;
 			}
 		});
 

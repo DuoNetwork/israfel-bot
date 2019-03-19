@@ -11,6 +11,7 @@ Array [
 
 exports[`parseOptions 1`] = `
 Object {
+  "contractType": "Beethoven",
   "debug": true,
   "env": "dev",
   "server": true,
