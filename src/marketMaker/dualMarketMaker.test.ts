@@ -795,122 +795,138 @@ test('maintainBalance, isMaintainingBalance', async () => {
 	expect(marketMaker5.isMaintainingBalance).toBeTruthy();
 });
 
-// test('maintainBalance, short of token', async () => {
-// 	baseMarketMaker.isMaintainingBalance = false;
-// 	const web3Util = {
-// 		getGasPrice: jest.fn(() => 9000000000),
-// 		tokenTransfer: jest.fn(() => Promise.resolve()),
-// 		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
-// 		contractAddresses: {
-// 			etherToken: 'wethAddr'
-// 		}
-// 	} as any;
+test('maintainBalance, short of token', async () => {
+	const marketMaker6 = Object.assign(
+		Object.create(Object.getPrototypeOf(dualMarketMaker)),
+		dualMarketMaker
+	);
+	marketMaker6.isMaintainingBalance = false;
+	const web3Util = {
+		getGasPrice: jest.fn(() => 9000000000),
+		tokenTransfer: jest.fn(() => Promise.resolve()),
+		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
+		contractAddresses: {
+			etherToken: 'wethAddr'
+		}
+	} as any;
 
-// 	const dualClassWrapper = {
-// 		getStates: jest.fn(() => Promise.resolve(custodianStates)),
-// 		create: jest.fn(() => Promise.resolve('createRawHash')),
-// 		redeem: jest.fn(() => Promise.resolve('redeemHash')),
-// 		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
-// 	} as any;
-// 	baseMarketMaker.tokenBalances = [11, 50, 50];
-// 	await baseMarketMaker.maintainBalance(web3Util, dualClassWrapper);
-// 	expect(baseMarketMaker.tokenBalances).toMatchSnapshot();
-// 	expect(dualClassWrapper.create.mock.calls).toMatchSnapshot();
-// 	expect(web3Util.getGasPrice).toBeCalledTimes(1);
-// 	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(1);
-// 	expect(web3Util.tokenTransfer).not.toBeCalled();
-// 	expect(dualClassWrapper.getStates).toBeCalledTimes(1);
-// 	expect(dualClassWrapper.redeem).not.toBeCalled();
-// 	expect(dualClassWrapper.wrapEther).not.toBeCalled();
-// 	expect(baseMarketMaker.isMaintainingBalance).toBeFalsy();
-// });
+	const dualClassWrapper = {
+		getStates: jest.fn(() => Promise.resolve(custodianStates)),
+		create: jest.fn(() => Promise.resolve('createRawHash')),
+		redeem: jest.fn(() => Promise.resolve('redeemHash')),
+		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
+	} as any;
+	marketMaker6.tokenBalances = [11, 50, 50];
+	await marketMaker6.maintainBalance(web3Util, dualClassWrapper);
+	expect(marketMaker6.tokenBalances).toMatchSnapshot();
+	expect(dualClassWrapper.create.mock.calls).toMatchSnapshot();
+	expect(web3Util.getGasPrice).toBeCalledTimes(1);
+	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(1);
+	expect(web3Util.tokenTransfer).not.toBeCalled();
+	expect(dualClassWrapper.getStates).toBeCalledTimes(1);
+	expect(dualClassWrapper.redeem).not.toBeCalled();
+	expect(dualClassWrapper.wrapEther).not.toBeCalled();
+	expect(marketMaker6.isMaintainingBalance).toBeFalsy();
+});
 
-// test('maintainBalance, surplus of token', async () => {
-// 	baseMarketMaker.isMaintainingBalance = false;
-// 	const web3Util = {
-// 		getGasPrice: jest.fn(() => 9000000000),
-// 		tokenTransfer: jest.fn(() => Promise.resolve()),
-// 		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
-// 		wrapEther: jest.fn(() => Promise.resolve('wrapTxHash')),
-// 		contractAddresses: {
-// 			etherToken: 'wethAddr'
-// 		}
-// 	} as any;
+test('maintainBalance, surplus of token', async () => {
+	const marketMaker7 = Object.assign(
+		Object.create(Object.getPrototypeOf(dualMarketMaker)),
+		dualMarketMaker
+	);
+	marketMaker7.isMaintainingBalance = false;
+	const web3Util = {
+		getGasPrice: jest.fn(() => 9000000000),
+		tokenTransfer: jest.fn(() => Promise.resolve()),
+		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
+		wrapEther: jest.fn(() => Promise.resolve('wrapTxHash')),
+		contractAddresses: {
+			etherToken: 'wethAddr'
+		}
+	} as any;
 
-// 	const dualClassWrapper = {
-// 		getStates: jest.fn(() => Promise.resolve(custodianStates)),
-// 		createRaw: jest.fn(() => Promise.resolve('createRawHash')),
-// 		redeem: jest.fn(() => Promise.resolve('redeemHash')),
-// 		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
-// 	} as any;
-// 	baseMarketMaker.tokenBalances = [2, 500, 500];
-// 	await baseMarketMaker.maintainBalance(web3Util, dualClassWrapper);
-// 	expect(baseMarketMaker.tokenBalances).toMatchSnapshot();
-// 	expect(dualClassWrapper.redeem.mock.calls).toMatchSnapshot();
-// 	expect(web3Util.wrapEther.mock.calls).toMatchSnapshot();
-// 	expect(web3Util.getGasPrice).toBeCalledTimes(1);
-// 	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(2);
-// 	expect(web3Util.tokenTransfer).not.toBeCalled();
-// 	expect(dualClassWrapper.createRaw).not.toBeCalled();
-// });
+	const dualClassWrapper = {
+		getStates: jest.fn(() => Promise.resolve(custodianStates)),
+		createRaw: jest.fn(() => Promise.resolve('createRawHash')),
+		redeem: jest.fn(() => Promise.resolve('redeemHash')),
+		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
+	} as any;
+	marketMaker7.tokenBalances = [2, 500, 500];
+	await marketMaker7.maintainBalance(web3Util, dualClassWrapper);
+	expect(marketMaker7.tokenBalances).toMatchSnapshot();
+	expect(dualClassWrapper.redeem.mock.calls).toMatchSnapshot();
+	expect(web3Util.wrapEther.mock.calls).toMatchSnapshot();
+	expect(web3Util.getGasPrice).toBeCalledTimes(1);
+	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(2);
+	expect(web3Util.tokenTransfer).not.toBeCalled();
+	expect(dualClassWrapper.createRaw).not.toBeCalled();
+});
 
-// test('maintainBalance, surplus of weth', async () => {
-// 	baseMarketMaker.isMaintainingBalance = false;
-// 	const web3Util = {
-// 		getGasPrice: jest.fn(() => 9000000000),
-// 		tokenTransfer: jest.fn(() => Promise.resolve('tokenTransferTxHash')),
-// 		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
-// 		wrapEther: jest.fn(() => Promise.resolve('wrapTxHash')),
-// 		contractAddresses: {
-// 			etherToken: 'wethAddr'
-// 		}
-// 	} as any;
+test('maintainBalance, surplus of weth', async () => {
+	const marketMaker8 = Object.assign(
+		Object.create(Object.getPrototypeOf(dualMarketMaker)),
+		dualMarketMaker
+	);
+	marketMaker8.isMaintainingBalance = false;
+	const web3Util = {
+		getGasPrice: jest.fn(() => 9000000000),
+		tokenTransfer: jest.fn(() => Promise.resolve('tokenTransferTxHash')),
+		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
+		wrapEther: jest.fn(() => Promise.resolve('wrapTxHash')),
+		contractAddresses: {
+			etherToken: 'wethAddr'
+		}
+	} as any;
 
-// 	const dualClassWrapper = {
-// 		getStates: jest.fn(() => Promise.resolve(custodianStates)),
-// 		createRaw: jest.fn(() => Promise.resolve('createRawHash')),
-// 		redeem: jest.fn(() => Promise.resolve('redeemHash')),
-// 		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
-// 	} as any;
-// 	baseMarketMaker.tokenBalances = [12, 200, 200];
-// 	await baseMarketMaker.maintainBalance(web3Util, dualClassWrapper);
-// 	expect(baseMarketMaker.tokenBalances).toMatchSnapshot();
-// 	expect(web3Util.tokenTransfer.mock.calls).toMatchSnapshot();
-// 	expect(web3Util.wrapEther).not.toBeCalled();
-// 	expect(web3Util.getGasPrice).toBeCalledTimes(1);
-// 	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(1);
-// 	expect(dualClassWrapper.redeem).not.toBeCalled();
-// 	expect(dualClassWrapper.createRaw).not.toBeCalled();
-// });
+	const dualClassWrapper = {
+		getStates: jest.fn(() => Promise.resolve(custodianStates)),
+		createRaw: jest.fn(() => Promise.resolve('createRawHash')),
+		redeem: jest.fn(() => Promise.resolve('redeemHash')),
+		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
+	} as any;
+	marketMaker8.tokenBalances = [12, 200, 200];
+	await marketMaker8.maintainBalance(web3Util, dualClassWrapper);
+	expect(marketMaker8.tokenBalances).toMatchSnapshot();
+	expect(web3Util.tokenTransfer.mock.calls).toMatchSnapshot();
+	expect(web3Util.wrapEther).not.toBeCalled();
+	expect(web3Util.getGasPrice).toBeCalledTimes(1);
+	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(1);
+	expect(dualClassWrapper.redeem).not.toBeCalled();
+	expect(dualClassWrapper.createRaw).not.toBeCalled();
+});
 
-// test('maintainBalance, short of weth', async () => {
-// 	baseMarketMaker.isMaintainingBalance = false;
-// 	const web3Util = {
-// 		getGasPrice: jest.fn(() => 9000000000),
-// 		tokenTransfer: jest.fn(() => Promise.resolve('tokenTransferTxHash')),
-// 		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
-// 		wrapEther: jest.fn(() => Promise.resolve('wrapTxHash')),
-// 		contractAddresses: {
-// 			etherToken: 'wethAddr'
-// 		}
-// 	} as any;
+test('maintainBalance, short of weth', async () => {
+	const marketMaker9 = Object.assign(
+		Object.create(Object.getPrototypeOf(dualMarketMaker)),
+		dualMarketMaker
+	);
+	marketMaker9.isMaintainingBalance = false;
+	const web3Util = {
+		getGasPrice: jest.fn(() => 9000000000),
+		tokenTransfer: jest.fn(() => Promise.resolve('tokenTransferTxHash')),
+		awaitTransactionSuccessAsync: jest.fn(() => Promise.resolve('txHash')),
+		wrapEther: jest.fn(() => Promise.resolve('wrapTxHash')),
+		contractAddresses: {
+			etherToken: 'wethAddr'
+		}
+	} as any;
 
-// 	const dualClassWrapper = {
-// 		getStates: jest.fn(() => Promise.resolve(custodianStates)),
-// 		createRaw: jest.fn(() => Promise.resolve('createRawHash')),
-// 		redeem: jest.fn(() => Promise.resolve('redeemHash')),
-// 		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
-// 	} as any;
-// 	baseMarketMaker.tokenBalances = [1, 200, 200];
-// 	await baseMarketMaker.maintainBalance(web3Util, dualClassWrapper);
-// 	expect(baseMarketMaker.tokenBalances).toMatchSnapshot();
-// 	expect(web3Util.tokenTransfer.mock.calls).toMatchSnapshot();
-// 	expect(web3Util.wrapEther).not.toBeCalled();
-// 	expect(web3Util.getGasPrice).toBeCalledTimes(1);
-// 	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(1);
-// 	expect(dualClassWrapper.redeem).not.toBeCalled();
-// 	expect(dualClassWrapper.createRaw).not.toBeCalled();
-// });
+	const dualClassWrapper = {
+		getStates: jest.fn(() => Promise.resolve(custodianStates)),
+		createRaw: jest.fn(() => Promise.resolve('createRawHash')),
+		redeem: jest.fn(() => Promise.resolve('redeemHash')),
+		wrapEther: jest.fn(() => Promise.resolve('wrapEtherHash'))
+	} as any;
+	marketMaker9.tokenBalances = [1, 200, 200];
+	await marketMaker9.maintainBalance(web3Util, dualClassWrapper);
+	expect(marketMaker9.tokenBalances).toMatchSnapshot();
+	expect(web3Util.tokenTransfer.mock.calls).toMatchSnapshot();
+	expect(web3Util.wrapEther).not.toBeCalled();
+	expect(web3Util.getGasPrice).toBeCalledTimes(1);
+	expect(web3Util.awaitTransactionSuccessAsync).toBeCalledTimes(1);
+	expect(dualClassWrapper.redeem).not.toBeCalled();
+	expect(dualClassWrapper.createRaw).not.toBeCalled();
+});
 
 test('createOrderBookFromNav', async () => {
 	const dualClassWrapper = {
