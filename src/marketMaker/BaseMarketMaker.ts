@@ -1,23 +1,13 @@
-import {
-	Constants as WrapperConstants,
-	DualClassWrapper,
-	IDualClassStates,
-	VivaldiWrapper,
-	Web3Wrapper
-} from '@finbook/duo-contract-wrapper';
+import { Constants as WrapperConstants, DualClassWrapper, IDualClassStates, VivaldiWrapper, Web3Wrapper } from '@finbook/duo-contract-wrapper';
 import { Constants as DataConstants, IPrice } from '@finbook/duo-market-data';
 import {
-	Constants,
-	IAccount,
+Constants, IAccount,
 	// IOrderBookSnapshot,
-	IOrderBookSnapshotLevel,
-	IToken,
-	IUserOrder,
+	IOrderBookSnapshotLevel, IToken, IUserOrder,
 	// OrderBookUtil,
-	RelayerClient,
-	Util,
-	Web3Util
+	RelayerClient, Util, Web3Util
 } from '@finbook/israfel-common';
+import WebSocket, { VerifyClientCallbackSync } from 'ws';
 import * as CST from '../common/constants';
 import { IOption } from '../common/types';
 import util from '../utils/util';
@@ -205,6 +195,46 @@ export default class BaseMarketMaker {
 				? new VivaldiWrapper(web3Wrapper, aToken.custodian)
 				: new DualClassWrapper(web3Wrapper, aToken.custodian);
 		return dualClassWrapper;
+	}
+
+	public verifyClient: VerifyClientCallbackSync = info => {
+		const ip = (info.req.headers['x-forwarded-for'] ||
+			info.req.connection.remoteAddress) as string;
+		Util.logDebug(ip);
+		// TODO: verification logic
+
+		return true;
+	};
+
+	public async startWsServer() {
+		const port = 8080;
+		const wsServer = new WebSocket.Server({
+			port: port,
+			verifyClient: this.verifyClient
+		});
+		Util.logInfo(`started bot service at port ${port}`);
+
+		wsServer.on('connection', (ws, req) =>
+		this.handleWebSocketConnection(ws, (req.headers['x-forwarded-for'] ||
+			req.connection.remoteAddress) as string)
+		);
+	}
+
+	public handleWebSocketMessage(ws: WebSocket, ip: string, m: string) {
+		console.log(ws.toString());
+		Util.logDebug('received: ' + m + ' from ' + ip);
+		// TODO: handle message from trader
+	}
+
+	public handleWebSocketClose(ws: WebSocket, ip: string) {
+		console.log(ws.toString());
+		Util.logInfo('connection close from ' + ip);
+		// TODO: close the connection from traer
+	}
+
+	public handleWebSocketConnection(ws: WebSocket, ip: string) {
+		ws.on('message', message => this.handleWebSocketMessage(ws, ip, message.toString()));
+		ws.on('close', () => this.handleWebSocketClose(ws, ip));
 	}
 
 	public async initialize(relayerClient: RelayerClient, option: IOption) {
