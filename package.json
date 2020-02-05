@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"description": "Israfel Bot",
-	"author": "FinBook Pte Ltd",
+	"author": "Duo Network",
 	"main": "index.js",
 	"scripts": {
 		"test": "jest",
